@@ -6,6 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "vitest",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "npx tsx src/index.ts"
   }
 }
