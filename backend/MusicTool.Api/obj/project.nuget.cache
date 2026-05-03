@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "1jFMobd26U8=",
+  "success": true,
+  "projectFilePath": "/Users/dannyfromm/Desktop/music-cli/backend/MusicTool.Api/MusicTool.Api.csproj",
+  "expectedPackageFiles": [
+    "/Users/dannyfromm/.nuget/packages/microsoft.aspnetcore.openapi/10.0.6/microsoft.aspnetcore.openapi.10.0.6.nupkg.sha512",
+    "/Users/dannyfromm/.nuget/packages/microsoft.openapi/2.0.0/microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
