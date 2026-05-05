@@ -399,7 +399,9 @@ const parseInput = (input: string): Result<Pipeline> => {
 
 	const [cmd, group, ...rest] = parts[0].split(/\s+/);
 	const state = stateCommands.get(cmd);
-	if (!state) return fail(`Unknown state command "${cmd}".`);
+	if (!state) {
+		return fail(`Unknown state command "${cmd}".`);
+	}
 
 	const stateRes = state([group]);
 	if (!stateRes.ok) return stateRes;
