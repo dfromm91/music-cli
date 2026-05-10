@@ -1,0 +1,109 @@
+import { navCommands } from "../commands/navCommands";
+import { stateCommands } from "../commands/stateCommands";
+import { transformCommands } from "../commands/transformCommands";
+import { fail, ok, Result } from "../core/Result";
+import { noteGroups } from "../core/state";
+import { Pipeline, Transform } from "../core/types";
+
+export const parseInput = (input: string): Result<Pipeline> => {
+	const parts = input
+		.split("|")
+		.map((x) => x.trim())
+		.filter(Boolean);
+
+	if (!parts.length) return fail("Empty input.");
+
+	if (parts.length === 1) {
+		const navCommand = navCommands.get(parts[0]);
+
+		if (navCommand) {
+			return ok({
+				stateChange: () => navCommand(),
+				transformations: [],
+				substitution: [],
+			});
+		}
+	}
+
+	const [cmd, groupName, ...rest] = parts[0].split(/\s+/);
+
+	const state = stateCommands.get(cmd);
+
+	if (!state) {
+		return fail(`Unknown state command "${cmd}".`);
+	}
+
+	const stateRes = state([groupName]);
+
+	if (!stateRes.ok) return stateRes;
+
+	if (rest.length === 0) {
+		const possibleGroup = noteGroups.get(groupName);
+
+		if (possibleGroup) {
+			return ok({
+				stateChange: stateRes.value,
+				transformations: [],
+				substitution: possibleGroup,
+			});
+		}
+	}
+
+	if (rest.length === 1) {
+		const possibleGroupName = rest[0];
+		const possibleGroup = noteGroups.get(possibleGroupName);
+
+		if (possibleGroup) {
+			return ok({
+				stateChange: stateRes.value,
+				transformations: [],
+				substitution: possibleGroup,
+			});
+		}
+	}
+
+	parts[0] = rest.join(" ");
+
+	const tokens = parts[0].split(/\s+/).filter(Boolean);
+	const subName = tokens.at(-1);
+
+	if (!subName) return fail("Missing substitution group.");
+
+	const sub = noteGroups.get(subName);
+
+	if (!sub) return fail(`Unknown substitution group "${subName}".`);
+
+	const errors: string[] = [];
+	const transforms: Transform[] = [];
+
+	// Remove substitution group from first transform segment.
+	parts[0] = tokens.slice(0, -1).join(" ");
+
+	for (const part of parts) {
+		if (!part.trim()) continue;
+
+		const [name, ...args] = part.split(/\s+/);
+		const cmd = transformCommands.get(name);
+
+		if (!cmd) {
+			errors.push(`Unknown transform "${name}".`);
+			continue;
+		}
+
+		const res = cmd(args);
+
+		if (res.ok) {
+			transforms.push(res.value);
+		} else {
+			errors.push(...res.errors);
+		}
+	}
+
+	return errors.length
+		? fail(...errors)
+		: ok({
+				stateChange: stateRes.value,
+				transformations: transforms,
+				substitution: sub,
+			});
+};

@@ -1,0 +1,44 @@
+import { Accidental, Note, Pitch } from "../domain/Note";
+import { mod } from "./helpers";
+
+const pitchSemitones: Record<Pitch, number> = {
+	[Pitch.C]: 0,
+	[Pitch.D]: 2,
+	[Pitch.E]: 4,
+	[Pitch.F]: 5,
+	[Pitch.G]: 7,
+	[Pitch.A]: 9,
+	[Pitch.B]: 11,
+};
+
+const accidentalOffsets: Record<Accidental, number> = {
+	[Accidental.Natural]: 0,
+	[Accidental.Sharp]: 1,
+	[Accidental.Flat]: -1,
+};
+
+const sharpSpellings: Record<number, readonly [Pitch, Accidental]> = {
+	0: [Pitch.C, Accidental.Natural],
+	1: [Pitch.C, Accidental.Sharp],
+	2: [Pitch.D, Accidental.Natural],
+	3: [Pitch.D, Accidental.Sharp],
+	4: [Pitch.E, Accidental.Natural],
+	5: [Pitch.F, Accidental.Natural],
+	6: [Pitch.F, Accidental.Sharp],
+	7: [Pitch.G, Accidental.Natural],
+	8: [Pitch.G, Accidental.Sharp],
+	9: [Pitch.A, Accidental.Natural],
+	10: [Pitch.A, Accidental.Sharp],
+	11: [Pitch.B, Accidental.Natural],
+};
+
+export const toSemitone = (n: Note): number =>
+	n.octave * 12 + pitchSemitones[n.pitch] + accidentalOffsets[n.accidental];
+
+export const fromSemitone = (abs: number): Note => {
+	const octave = Math.floor(abs / 12);
+	const semi = mod(abs, 12);
+	const [pitch, accidental] = sharpSpellings[semi];
+
+	return new Note(pitch, accidental, octave);
+};
