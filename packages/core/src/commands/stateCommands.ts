@@ -7,6 +7,7 @@ import {
 	setGroup,
 } from "../core/state";
 import { StateChange } from "../core/types";
+import { resolveNoteGroup } from "../core/helpers";
 
 export type StateCommand = (args: string[]) => Result<StateChange>;
 
@@ -17,7 +18,7 @@ export const stateCommands = new Map<string, StateCommand>([
 			const groupName = args[0];
 
 			if (!groupName) return fail("append requires group name.");
-			if (!noteGroups.has(groupName))
+			if (!resolveNoteGroup(groupName).ok)
 				return fail(`Unknown group "${groupName}".`);
 
 			return ok((notes) => appendToGroup(groupName, notes));

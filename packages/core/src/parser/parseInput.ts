@@ -1,6 +1,7 @@
 import { navCommands } from "../commands/navCommands";
 import { stateCommands } from "../commands/stateCommands";
 import { transformCommands } from "../commands/transformCommands";
+import { resolveNoteGroup } from "../core/helpers";
 import { fail, ok, Result } from "../core/Result";
 import { noteGroups } from "../core/state";
 import { Pipeline, Transform } from "../core/types";
@@ -38,26 +39,26 @@ export const parseInput = (input: string): Result<Pipeline> => {
 	if (!stateRes.ok) return stateRes;
 
 	if (rest.length === 0) {
-		const possibleGroup = noteGroups.get(groupName);
+		const possibleGroup = resolveNoteGroup(groupName);
 
-		if (possibleGroup) {
+		if (possibleGroup.ok) {
 			return ok({
 				stateChange: stateRes.value,
 				transformations: [],
-				substitution: possibleGroup,
+				substitution: possibleGroup.value,
 			});
 		}
 	}
 
 	if (rest.length === 1) {
 		const possibleGroupName = rest[0];
-		const possibleGroup = noteGroups.get(possibleGroupName);
+		const possibleGroup = resolveNoteGroup(possibleGroupName);
 
-		if (possibleGroup) {
+		if (possibleGroup.ok) {
 			return ok({
 				stateChange: stateRes.value,
 				transformations: [],
-				substitution: possibleGroup,
+				substitution: possibleGroup.value,
 			});
 		}
 	}
@@ -69,9 +70,9 @@ export const parseInput = (input: string): Result<Pipeline> => {
 
 	if (!subName) return fail("Missing substitution group.");
 
-	const sub = noteGroups.get(subName);
+	const sub = resolveNoteGroup(subName);
 
-	if (!sub) return fail(`Unknown substitution group "${subName}".`);
+	if (!sub.ok) return fail(`Unknown substitution group "${subName}".`);
 
 	const errors: string[] = [];
 	const transforms: Transform[] = [];
@@ -104,6 +105,6 @@ export const parseInput = (input: string): Result<Pipeline> => {
 		: ok({
 				stateChange: stateRes.value,
 				transformations: transforms,
-				substitution: sub,
+				substitution: sub.value,
 			});
 };
