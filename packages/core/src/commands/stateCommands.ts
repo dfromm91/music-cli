@@ -7,6 +7,7 @@ import {
 	setGroup,
 } from "../core/state";
 import { StateChange } from "../core/types";
+import { Note } from "../domain/Note";
 import { resolveNoteGroup } from "../core/helpers";
 
 export type StateCommand = (args: string[]) => Result<StateChange>;
@@ -48,14 +49,14 @@ export const stateCommands = new Map<string, StateCommand>([
 	],
 	[
 		"print",
-		(args) => {
+		(args, notes: Note[] = []) => {
 			if (args.length !== 1) return fail("print requires 1 note group.");
 
 			const groupName = args[0];
 
 			if (!groupName) return fail("print requires group name.");
 
-			return ok(() => printGroup(groupName));
+			return ok((n = notes) => printGroup(groupName, n));
 		},
 	],
 ]);

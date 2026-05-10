@@ -1,5 +1,6 @@
 import { Note, Pitch } from "../domain/Note";
-
+import { resolveNoteGroup } from "./helpers";
+import { ok } from "./Result";
 export const noteGroups = new Map<string, Note[]>([
 	["score", []],
 	["motif", [new Note(Pitch.C), new Note(Pitch.E), new Note(Pitch.G)]],
@@ -21,8 +22,12 @@ export const clearGroup = (name: string) => {
 	noteGroups.set(name, []);
 };
 
-export const printGroup = (name: string) => {
-	console.log((noteGroups.get(name) ?? []).map((n) => n.toString()).join(" "));
+export const printGroup = (name: string, notes: Note[] = []) => {
+	const ng = notes.length ? ok(notes) : resolveNoteGroup(name);
+	if (ng.ok) {
+		console.log(ng.value.map((n) => n.toString()).join(" "));
+	}
+	//console.log((resolveNoteGroup(name).value ?? []).map((n) => n.toString()).join(" "));
 };
 
 export const printGroups = () => {

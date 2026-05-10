@@ -28,7 +28,7 @@ export const resolveNoteGroup = (name: string): Result<Note[]> => {
 		}
 		const pitch = pitchMap[result[i][0]];
 		const hasAccidental = result[i].length == 3;
-		console.log("has accidental: " + hasAccidental);
+
 		const accidental = hasAccidental
 			? accidentalMap[result[i][1]]
 			: Accidental.Natural;

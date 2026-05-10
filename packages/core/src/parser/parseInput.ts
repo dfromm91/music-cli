@@ -7,13 +7,15 @@ import { noteGroups } from "../core/state";
 import { Pipeline, Transform } from "../core/types";
 
 export const parseInput = (input: string): Result<Pipeline> => {
-	const parts = input
+	let parts = input
 		.split("|")
 		.map((x) => x.trim())
 		.filter(Boolean);
 
 	if (!parts.length) return fail("Empty input.");
-
+	if (transformCommands.get(parts[0].split(" ")[0].trim())) {
+		parts[0] = "print placeholder " + parts[0];
+	}
 	if (parts.length === 1) {
 		const navCommand = navCommands.get(parts[0]);
 
