@@ -2,7 +2,39 @@ import { Generator } from "../core/types";
 import { Result, ok, fail } from "../core/Result";
 import { Note, Pitch, Accidental } from "../domain/Note";
 import { resolveNoteGroup } from "../core/helpers";
+import { toSemitone, fromSemitone } from "../core/musicMath";
 export type GeneratorCommand = (args: string[]) => Result<Generator>;
+
+const resolveSingleNote = (value: string, label: string): Result<Note> => {
+	const resolved = resolveNoteGroup(value);
+
+	if (!resolved.ok) return resolved;
+
+	if (resolved.value.length !== 1) {
+		return fail(`${label} must resolve to exactly one note.`);
+	}
+
+	return ok(resolved.value[0]);
+};
+
+const resolveChord = (chordName: string): Result<Note[]> => {
+	const chord = chordMap.get(chordName.toLowerCase());
+
+	if (!chord) {
+		return fail(`Unknown chord "${chordName}".`);
+	}
+
+	return ok(chord);
+};
+
+const makeChordToneInOctave = (chordTone: Note, octave: number): Note =>
+	new Note(chordTone.pitch, chordTone.accidental, octave);
+
+const inRange = (note: Note, start: Note, end: Note): boolean => {
+	const semi = toSemitone(note);
+	return semi >= toSemitone(start) && semi <= toSemitone(end);
+};
+
 const chordMap = new Map<string, Note[]>([
 	["cmaj", [new Note(Pitch.C), new Note(Pitch.E), new Note(Pitch.G)]],
 	[
@@ -92,41 +124,162 @@ export const arpUp: GeneratorCommand = (args) => {
 	if (!end) return fail("arpUp requires an end note.");
 	if (!chordName) return fail("arpUp requires a chord name.");
 
-	const resolvedStart = resolveNoteGroup(start);
-	if (!resolvedStart.ok) return resolvedStart;
+	const startRes = resolveSingleNote(start, "arpUp start");
+	if (!startRes.ok) return startRes;
 
-	const resolvedEnd = resolveNoteGroup(end);
-	if (!resolvedEnd.ok) return resolvedEnd;
+	const endRes = resolveSingleNote(end, "arpUp end");
+	if (!endRes.ok) return endRes;
 
-	if (resolvedStart.value.length !== 1) {
-		return fail("arpUp start must resolve to exactly one note.");
-	}
+	const chordRes = resolveChord(chordName);
+	if (!chordRes.ok) return chordRes;
 
-	if (resolvedEnd.value.length !== 1) {
-		return fail("arpUp end must resolve to exactly one note.");
-	}
-
-	const chord = chordMap.get(chordName.toLowerCase());
-
-	if (!chord) {
-		return fail(`Unknown chord "${chordName}".`);
-	}
-
-	const startNote = resolvedStart.value[0];
-	const endNote = resolvedEnd.value[0];
+	const startNote = startRes.value;
+	const endNote = endRes.value;
+	const chord = chordRes.value;
 
 	return ok(() => {
 		const notes: Note[] = [];
-		let octave = startNote.octave;
 
-		while (octave <= endNote.octave) {
+		for (let octave = startNote.octave; octave <= endNote.octave; octave++) {
 			for (const chordTone of chord) {
-				const next = new Note(chordTone.pitch, chordTone.accidental, octave);
+				const next = makeChordToneInOctave(chordTone, octave);
 
-				notes.push(next);
+				if (inRange(next, startNote, endNote)) {
+					notes.push(next);
+				}
 			}
+		}
 
-			octave++;
+		return notes;
+	});
+};
+export const arpDown: GeneratorCommand = (args) => {
+	const up = arpUp(args);
+
+	if (!up.ok) return up;
+
+	return ok(() => up.value().reverse());
+};
+export const chord: GeneratorCommand = (args) => {
+	const [chordName, octaveArg] = args;
+
+	if (!chordName) return fail("chord requires a chord name.");
+
+	const chordRes = resolveChord(chordName);
+	if (!chordRes.ok) return chordRes;
+
+	const octave = octaveArg ? Number.parseInt(octaveArg, 10) : 4;
+
+	if (Number.isNaN(octave)) {
+		return fail(`chord expected octave to be a number, got "${octaveArg}".`);
+	}
+
+	return ok(() =>
+		chordRes.value.map(
+			(note) =>
+				new Note(
+					note.pitch,
+					note.accidental,
+					note.octave === 5 ? octave + 1 : octave,
+				),
+		),
+	);
+};
+export const arpUpDown: GeneratorCommand = (args) => {
+	const up = arpUp(args);
+
+	if (!up.ok) return up;
+
+	return ok(() => {
+		const notes = up.value();
+
+		if (notes.length <= 2) {
+			return notes;
+		}
+
+		return [...notes, ...notes.slice(1, -1).reverse()];
+	});
+};
+export const chromaticUp: GeneratorCommand = (args) => {
+	const [start, end] = args;
+
+	if (!start) return fail("chromaticUp requires a start note.");
+	if (!end) return fail("chromaticUp requires an end note.");
+
+	const startRes = resolveSingleNote(start, "chromaticUp start");
+	if (!startRes.ok) return startRes;
+
+	const endRes = resolveSingleNote(end, "chromaticUp end");
+	if (!endRes.ok) return endRes;
+
+	return ok(() => {
+		const notes: Note[] = [];
+
+		for (
+			let semi = toSemitone(startRes.value);
+			semi <= toSemitone(endRes.value);
+			semi++
+		) {
+			notes.push(fromSemitone(semi));
+		}
+
+		return notes;
+	});
+};
+export const chromaticDown: GeneratorCommand = (args) => {
+	const [start, end] = args;
+
+	if (!start) return fail("chromaticDown requires a start note.");
+	if (!end) return fail("chromaticDown requires an end note.");
+
+	const startRes = resolveSingleNote(start, "chromaticDown start");
+	if (!startRes.ok) return startRes;
+
+	const endRes = resolveSingleNote(end, "chromaticDown end");
+	if (!endRes.ok) return endRes;
+
+	return ok(() => {
+		const notes: Note[] = [];
+
+		for (
+			let semi = toSemitone(startRes.value);
+			semi >= toSemitone(endRes.value);
+			semi--
+		) {
+			notes.push(fromSemitone(semi));
+		}
+
+		return notes;
+	});
+};
+export const intervalUp: GeneratorCommand = (args) => {
+	const [start, end, intervalArg] = args;
+
+	if (!start) return fail("intervalUp requires a start note.");
+	if (!end) return fail("intervalUp requires an end note.");
+	if (!intervalArg) return fail("intervalUp requires an interval.");
+
+	const startRes = resolveSingleNote(start, "intervalUp start");
+	if (!startRes.ok) return startRes;
+
+	const endRes = resolveSingleNote(end, "intervalUp end");
+	if (!endRes.ok) return endRes;
+
+	const interval = Number.parseInt(intervalArg, 10);
+
+	if (Number.isNaN(interval) || interval <= 0) {
+		return fail(`intervalUp expected a positive number, got "${intervalArg}".`);
+	}
+
+	return ok(() => {
+		const notes: Note[] = [];
+
+		for (
+			let semi = toSemitone(startRes.value);
+			semi <= toSemitone(endRes.value);
+			semi += interval
+		) {
+			notes.push(fromSemitone(semi));
 		}
 
 		return notes;
@@ -134,4 +287,10 @@ export const arpUp: GeneratorCommand = (args) => {
 };
 export const generatorCommands = new Map<string, GeneratorCommand>([
 	["arpUp", arpUp],
+	["arpDown", arpDown],
+	["arpUpDown", arpUpDown],
+	["chord", chord],
+	["chromaticUp", chromaticUp],
+	["chromaticDown", chromaticDown],
+	["intervalUp", intervalUp],
 ]);
