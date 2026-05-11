@@ -1,6 +1,7 @@
 import { fail, ok, Result } from "./Result";
 import { Note, Pitch, Accidental } from "../domain/Note";
 import { noteGroups } from "../core/state";
+import { generatorCommands } from "../commands/GeneratorCommands";
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
 
 const pitchMap: Record<string, Pitch> = {
@@ -54,6 +55,14 @@ export const resolveNoteGroup = (name: string): Result<Note[]> => {
 
 	if (existingGroup) {
 		return ok(existingGroup);
+	}
+	const [possibleGeneratorCommand, ...args] = name.split("_");
+	const possibleGenerator = generatorCommands.get(possibleGeneratorCommand);
+	if (possibleGenerator) {
+		const g = possibleGenerator(args);
+		if (g.ok) {
+			return ok(g.value());
+		}
 	}
 
 	const notes: Note[] = [];

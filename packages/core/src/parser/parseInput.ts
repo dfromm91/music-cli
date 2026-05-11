@@ -42,7 +42,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 
 	if (rest.length === 0) {
 		const possibleGroup = resolveNoteGroup(groupName);
-		console.log(rest);
+		// console.log(rest);
 		if (possibleGroup.ok) {
 			return ok({
 				stateChange: stateRes.value,
@@ -53,9 +53,9 @@ export const parseInput = (input: string): Result<Pipeline> => {
 	}
 	if (rest.length === 1) {
 		const possibleGroupName = rest[0];
-		console.log("pgn: " + possibleGroupName);
-		console.log("cmd: " + cmd);
-		console.log("group name: " + groupName);
+		// console.log("pgn: " + possibleGroupName);
+		// console.log("cmd: " + cmd);
+		// console.log("group name: " + groupName);
 		const possibleGroup = resolveNoteGroup(possibleGroupName);
 
 		if (possibleGroup.ok) {
@@ -72,7 +72,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 	}
 
 	parts[0] = rest.join(" ");
-	console.log(parts);
+	// console.log(parts);
 	const tokens = parts[0].split(/\s+/).filter(Boolean);
 	const subName = tokens.at(-1);
 
