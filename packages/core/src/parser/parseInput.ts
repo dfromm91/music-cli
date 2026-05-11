@@ -28,7 +28,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 		}
 	}
 
-	const [cmd, groupName, ...rest] = parts[0].split(/\s+/);
+	let [cmd, groupName, ...rest] = parts[0].split(/\s+/);
 
 	const state = stateCommands.get(cmd);
 
@@ -42,7 +42,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 
 	if (rest.length === 0) {
 		const possibleGroup = resolveNoteGroup(groupName);
-
+		console.log(rest);
 		if (possibleGroup.ok) {
 			return ok({
 				stateChange: stateRes.value,
@@ -51,22 +51,28 @@ export const parseInput = (input: string): Result<Pipeline> => {
 			});
 		}
 	}
-
 	if (rest.length === 1) {
 		const possibleGroupName = rest[0];
+		console.log("pgn: " + possibleGroupName);
+		console.log("cmd: " + cmd);
+		console.log("group name: " + groupName);
 		const possibleGroup = resolveNoteGroup(possibleGroupName);
 
 		if (possibleGroup.ok) {
-			return ok({
-				stateChange: stateRes.value,
-				transformations: [],
-				substitution: possibleGroup.value,
-			});
+			if (transformCommands.get(groupName.trim())) {
+				rest = [groupName, ...rest];
+			} else {
+				return ok({
+					stateChange: stateRes.value,
+					transformations: [],
+					substitution: possibleGroup.value,
+				});
+			}
 		}
 	}
 
 	parts[0] = rest.join(" ");
-
+	console.log(parts);
 	const tokens = parts[0].split(/\s+/).filter(Boolean);
 	const subName = tokens.at(-1);
 
@@ -80,7 +86,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 	const transforms: Transform[] = [];
 
 	// Remove substitution group from first transform segment.
-	parts[0] = tokens.slice(0, -1).join(" ");
+	// parts[0] = tokens.slice(0, -1).join(" ");
 
 	for (const part of parts) {
 		if (!part.trim()) continue;
