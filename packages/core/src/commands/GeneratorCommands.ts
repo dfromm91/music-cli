@@ -1,38 +1,48 @@
 import { Generator } from "../core/types";
 import { Result, ok, fail } from "../core/Result";
-import { Note, Pitch, Accidental } from "../domain/Note";
-import { resolveNoteGroup } from "../core/helpers";
+import {
+	Note,
+	Pitch,
+	Accidental,
+	Sequence,
+	ScoreEvent,
+	noteEvent,
+} from "../domain/Note";
+import { resolveSequence } from "../core/helpers";
 import { toSemitone, fromSemitone } from "../core/musicMath";
+
 export type GeneratorCommand = (args: string[]) => Result<Generator>;
 
+const isNoteEvent = (
+	event: ScoreEvent,
+): event is Extract<ScoreEvent, { type: "NoteEvent" }> => {
+	return event.type === "NoteEvent";
+};
+
+const notesToSequence = (notes: Note[]): Sequence => {
+	return notes.map((note) => noteEvent([note]));
+};
+
 const resolveSingleNote = (value: string, label: string): Result<Note> => {
-	const resolved = resolveNoteGroup(value);
+	const resolved = resolveSequence(value);
 
 	if (!resolved.ok) return resolved;
 
 	if (resolved.value.length !== 1) {
+		return fail(`${label} must resolve to exactly one event.`);
+	}
+
+	const event = resolved.value[0];
+
+	if (!isNoteEvent(event)) {
+		return fail(`${label} must resolve to a note, not a rest.`);
+	}
+
+	if (event.notes.length !== 1) {
 		return fail(`${label} must resolve to exactly one note.`);
 	}
 
-	return ok(resolved.value[0]);
-};
-
-const resolveChord = (chordName: string): Result<Note[]> => {
-	const chord = chordMap.get(chordName.toLowerCase());
-
-	if (!chord) {
-		return fail(`Unknown chord "${chordName}".`);
-	}
-
-	return ok(chord);
-};
-
-const makeChordToneInOctave = (chordTone: Note, octave: number): Note =>
-	new Note(chordTone.pitch, chordTone.accidental, octave);
-
-const inRange = (note: Note, start: Note, end: Note): boolean => {
-	const semi = toSemitone(note);
-	return semi >= toSemitone(start) && semi <= toSemitone(end);
+	return ok(event.notes[0]);
 };
 
 const chordMap = new Map<string, Note[]>([
@@ -77,7 +87,6 @@ const chordMap = new Map<string, Note[]>([
 			new Note(Pitch.F, Accidental.Sharp, 5),
 		],
 	],
-
 	[
 		"cmin",
 		[new Note(Pitch.C), new Note(Pitch.E, Accidental.Flat), new Note(Pitch.G)],
@@ -117,6 +126,25 @@ const chordMap = new Map<string, Note[]>([
 		],
 	],
 ]);
+
+const resolveChord = (chordName: string): Result<Note[]> => {
+	const chord = chordMap.get(chordName.toLowerCase());
+
+	if (!chord) {
+		return fail(`Unknown chord "${chordName}".`);
+	}
+
+	return ok(chord);
+};
+
+const makeChordToneInOctave = (chordTone: Note, octave: number): Note =>
+	new Note(chordTone.pitch, chordTone.accidental, octave);
+
+const inRange = (note: Note, start: Note, end: Note): boolean => {
+	const semi = toSemitone(note);
+	return semi >= toSemitone(start) && semi <= toSemitone(end);
+};
+
 export const arpUp: GeneratorCommand = (args) => {
 	const [start, end, chordName] = args;
 
@@ -150,16 +178,18 @@ export const arpUp: GeneratorCommand = (args) => {
 			}
 		}
 
-		return notes;
+		return notesToSequence(notes);
 	});
 };
+
 export const arpDown: GeneratorCommand = (args) => {
 	const up = arpUp(args);
 
 	if (!up.ok) return up;
 
-	return ok(() => up.value().reverse());
+	return ok(() => [...up.value()].reverse());
 };
+
 export const chord: GeneratorCommand = (args) => {
 	const [chordName, octaveArg] = args;
 
@@ -174,32 +204,36 @@ export const chord: GeneratorCommand = (args) => {
 		return fail(`chord expected octave to be a number, got "${octaveArg}".`);
 	}
 
-	return ok(() =>
-		chordRes.value.map(
-			(note) =>
-				new Note(
-					note.pitch,
-					note.accidental,
-					note.octave === 5 ? octave + 1 : octave,
-				),
+	return ok(() => [
+		noteEvent(
+			chordRes.value.map(
+				(note) =>
+					new Note(
+						note.pitch,
+						note.accidental,
+						note.octave === 5 ? octave + 1 : octave,
+					),
+			),
 		),
-	);
+	]);
 };
+
 export const arpUpDown: GeneratorCommand = (args) => {
 	const up = arpUp(args);
 
 	if (!up.ok) return up;
 
 	return ok(() => {
-		const notes = up.value();
+		const sequence = up.value();
 
-		if (notes.length <= 2) {
-			return notes;
+		if (sequence.length <= 2) {
+			return sequence;
 		}
 
-		return [...notes, ...notes.slice(1, -1).reverse()];
+		return [...sequence, ...sequence.slice(1, -1).reverse()];
 	});
 };
+
 export const chromaticUp: GeneratorCommand = (args) => {
 	const [start, end] = args;
 
@@ -223,9 +257,10 @@ export const chromaticUp: GeneratorCommand = (args) => {
 			notes.push(fromSemitone(semi));
 		}
 
-		return notes;
+		return notesToSequence(notes);
 	});
 };
+
 export const chromaticDown: GeneratorCommand = (args) => {
 	const [start, end] = args;
 
@@ -249,9 +284,10 @@ export const chromaticDown: GeneratorCommand = (args) => {
 			notes.push(fromSemitone(semi));
 		}
 
-		return notes;
+		return notesToSequence(notes);
 	});
 };
+
 export const intervalUp: GeneratorCommand = (args) => {
 	const [start, end, intervalArg] = args;
 
@@ -282,9 +318,10 @@ export const intervalUp: GeneratorCommand = (args) => {
 			notes.push(fromSemitone(semi));
 		}
 
-		return notes;
+		return notesToSequence(notes);
 	});
 };
+
 export const generatorCommands = new Map<string, GeneratorCommand>([
 	["arpUp", arpUp],
 	["arpDown", arpDown],

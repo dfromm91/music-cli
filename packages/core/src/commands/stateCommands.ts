@@ -7,8 +7,8 @@ import {
 	setGroup,
 } from "../core/state";
 import { StateChange } from "../core/types";
-import { Note } from "../domain/Note";
-import { resolveNoteGroup } from "../core/helpers";
+import { Note, Sequence } from "../domain/Note";
+import { resolveSequence } from "../core/helpers";
 
 export type StateCommand = (args: string[]) => Result<StateChange>;
 
@@ -19,7 +19,7 @@ export const stateCommands = new Map<string, StateCommand>([
 			const groupName = args[0];
 
 			if (!groupName) return fail("append requires group name.");
-			if (!resolveNoteGroup(groupName).ok)
+			if (!resolveSequence(groupName).ok)
 				return fail(`Unknown group "${groupName}".`);
 
 			return ok((notes) => appendToGroup(groupName, notes));
@@ -49,7 +49,7 @@ export const stateCommands = new Map<string, StateCommand>([
 	],
 	[
 		"print",
-		(args, notes: Note[] = []) => {
+		(args, notes: Sequence = []) => {
 			if (args.length !== 1) return fail("print requires 1 note group.");
 
 			const groupName = args[0];

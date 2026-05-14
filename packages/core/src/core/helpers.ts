@@ -1,5 +1,5 @@
 import { fail, ok, Result } from "./Result";
-import { Note, Pitch, Accidental } from "../domain/Note";
+import { Note, Pitch, Accidental, Sequence, noteEvent } from "../domain/Note";
 import { noteGroups } from "../core/state";
 import { generatorCommands } from "../commands/GeneratorCommands";
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
@@ -20,7 +20,7 @@ const accidentalMap: Record<string, Accidental> = {
 	"#": Accidental.Sharp,
 };
 
-const parseNote = (input: string): Result<Note> => {
+const parseNoteLiteral = (input: string): Result<Note> => {
 	const match = input.match(/^([A-G])([#b]?)(\d+)$/);
 
 	if (!match) {
@@ -49,35 +49,42 @@ const parseNote = (input: string): Result<Note> => {
 
 	return ok(new Note(pitch, accidental, octave));
 };
+const parseNoteList = (input: string): Result<Sequence> => {
+	const events: Sequence = [];
 
-export const resolveNoteGroup = (name: string): Result<Note[]> => {
-	const existingGroup = noteGroups.get(name);
-
-	if (existingGroup) {
-		return ok(existingGroup);
-	}
-	const [possibleGeneratorCommand, ...args] = name.split("_");
-	const possibleGenerator = generatorCommands.get(possibleGeneratorCommand);
-	if (possibleGenerator) {
-		const g = possibleGenerator(args);
-		if (g.ok) {
-			return ok(g.value());
-		}
-	}
-
-	const notes: Note[] = [];
-
-	for (const rawNote of name.split(",")) {
-		const noteResult = parseNote(rawNote.trim());
+	for (const rawNote of input.split(",")) {
+		const noteResult = parseNoteLiteral(rawNote.trim());
 
 		if (!noteResult.ok) {
 			return noteResult;
 		}
 
-		notes.push(noteResult.value);
+		events.push(noteEvent([noteResult.value]));
 	}
 
-	return ok(notes);
+	return ok(events);
+};
+export const resolveSequence = (name: string): Result<Sequence> => {
+	const existingGroup = noteGroups.get(name);
+
+	if (existingGroup) {
+		return ok(existingGroup);
+	}
+
+	const [possibleGeneratorCommand, ...args] = name.split("_");
+	const possibleGenerator = generatorCommands.get(possibleGeneratorCommand);
+
+	if (possibleGenerator) {
+		const generatorResult = possibleGenerator(args);
+
+		if (!generatorResult.ok) {
+			return generatorResult;
+		}
+
+		return ok(generatorResult.value());
+	}
+
+	return parseNoteList(name);
 };
 
 export const parseRequiredInt = (
