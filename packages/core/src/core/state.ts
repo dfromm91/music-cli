@@ -1,37 +1,69 @@
-import { Note, Pitch } from "../domain/Note";
-import { resolveNoteGroup } from "./helpers";
-import { ok } from "./Result";
-export const noteGroups = new Map<string, Note[]>([
+import {
+	Note,
+	Pitch,
+	ScoreEvent,
+	noteEvent,
+	Sequence,
+	Accidental,
+} from "../domain/Note";
+
+export const noteGroups = new Map<string, Sequence>([
 	["score", []],
-	["motif", [new Note(Pitch.C), new Note(Pitch.E), new Note(Pitch.G)]],
+	[
+		"motif",
+		[
+			noteEvent([new Note(Pitch.C), new Note(Pitch.C, Accidental.Sharp)]),
+			noteEvent([new Note(Pitch.E)]),
+			noteEvent([new Note(Pitch.G)]),
+		],
+	],
 ]);
 
-export const appendToGroup = (name: string, notes: Note[]) => {
+export const appendToGroup = (name: string, events: Sequence): void => {
 	const group = noteGroups.get(name);
 
-	if (group) {
-		noteGroups.set(name, [...group, ...notes]);
+	if (!group) {
+		return;
 	}
+
+	noteGroups.set(name, [...group, ...events]);
 };
 
-export const setGroup = (name: string, notes: Note[]) => {
-	noteGroups.set(name, [...notes]);
+export const setGroup = (name: string, events: Sequence): void => {
+	noteGroups.set(name, [...events]);
 };
 
-export const clearGroup = (name: string) => {
+export const clearGroup = (name: string): void => {
 	noteGroups.set(name, []);
 };
 
-export const printGroup = (name: string, notes: Note[] = []) => {
-	const ng = notes.length ? ok(notes) : resolveNoteGroup(name);
-	if (ng.ok) {
-		console.log(ng.value.map((n) => n.toString()).join(" "));
+const eventToString = (event: ScoreEvent): string => {
+	if (event.type === "RestEvent") {
+		return `r:${event.duration}`;
 	}
-	//console.log((resolveNoteGroup(name).value ?? []).map((n) => n.toString()).join(" "));
+
+	const notes = event.notes.map((n) => n.toString()).join(",");
+
+	if (event.notes.length > 1) {
+		return `[${notes}]:${event.duration}`;
+	}
+
+	return `${notes}:${event.duration}`;
 };
 
-export const printGroups = () => {
-	for (const [name, notes] of noteGroups) {
-		console.log(`${name}: ${notes.map((n) => n.toString()).join(" ")}`);
+export const printGroup = (name: string, events?: Sequence): void => {
+	const resolved = events ?? noteGroups.get(name);
+
+	if (!resolved) {
+		console.log(`Unknown group "${name}"`);
+		return;
+	}
+
+	console.log(resolved.map(eventToString).join(" "));
+};
+
+export const printGroups = (): void => {
+	for (const [name, events] of noteGroups) {
+		console.log(`${name}: ${events.map(eventToString).join(" ")}`);
 	}
 };
