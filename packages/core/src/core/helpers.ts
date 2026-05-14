@@ -1,5 +1,12 @@
 import { fail, ok, Result } from "./Result";
-import { Note, Pitch, Accidental, Sequence, noteEvent } from "../domain/Note";
+import {
+	Note,
+	Pitch,
+	Accidental,
+	Sequence,
+	noteEvent,
+	NoteEvent,
+} from "../domain/Note";
 import { noteGroups } from "../core/state";
 import { generatorCommands } from "../commands/GeneratorCommands";
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
@@ -49,10 +56,31 @@ const parseNoteLiteral = (input: string): Result<Note> => {
 
 	return ok(new Note(pitch, accidental, octave));
 };
+const parseNoteColumn = (input: string): Result<Sequence> => {
+	const bracketsCorrect = input[0] == "[" && input[input.length - 1] == "]";
+	if (!bracketsCorrect) {
+		return fail("Could not resolve note column");
+	}
+	const resolvedNotes = input
+		.slice(1, input.length - 1)
+		.split("-")
+		.map(parseNoteLiteral);
+	for (const rawNote of resolvedNotes) {
+		if (!rawNote.ok) {
+			return fail("Could not resolve note column");
+		}
+	}
+	return ok([
+		noteEvent(resolvedNotes.filter((rn) => rn.ok).map((rn) => rn.value)),
+	]);
+};
 const parseNoteList = (input: string): Result<Sequence> => {
 	const events: Sequence = [];
 
 	for (const rawNote of input.split(",")) {
+		if (rawNote[0] == "[") {
+			return parseNoteColumn(rawNote);
+		}
 		const noteResult = parseNoteLiteral(rawNote.trim());
 
 		if (!noteResult.ok) {
