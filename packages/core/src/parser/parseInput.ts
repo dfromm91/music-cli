@@ -80,7 +80,7 @@ export const parseInput = (input: string): Result<Pipeline> => {
 
 	const sub = resolveSequence(subName);
 
-	if (!sub.ok) return fail(`Unknown substitution group "${subName}".`);
+	if (!sub.ok) return sub;
 
 	const errors: string[] = [];
 	const transforms: Transform[] = [];
