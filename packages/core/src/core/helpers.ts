@@ -7,7 +7,8 @@ import {
 	noteEvent,
 	NoteEvent,
 	ScoreEvent,
-	Duration
+	Duration,
+	restEvent,
 } from "../domain/Note";
 import { noteGroups } from "../core/state";
 import { generatorCommands } from "../commands/GeneratorCommands";
@@ -30,7 +31,7 @@ const accidentalMap: Record<string, Accidental> = {
 };
 
 const parseNoteLiteral = (input: string): Result<Note> => {
-	const match = input.match(/^([A-G])([#b]?)(\d+)$/);
+	const match = input.match(/^([A-Gr])([#b]?)(\d+)$/);
 
 	if (!match) {
 		return fail(
@@ -41,6 +42,7 @@ const parseNoteLiteral = (input: string): Result<Note> => {
 	const [, pitchStr, accidentalStr, octaveStr] = match;
 
 	const pitch = pitchMap[pitchStr];
+
 	const accidental = accidentalMap[accidentalStr];
 	const octave = Number.parseInt(octaveStr, 10);
 
@@ -59,17 +61,19 @@ const parseNoteLiteral = (input: string): Result<Note> => {
 	return ok(new Note(pitch, accidental, octave));
 };
 const isDuration = (input: string): input is Duration => {
-	return ['w', 'h', 'q', 'e', 's'].includes(input);
-}
+	return ["w", "h", "q", "e", "s"].includes(input);
+};
 const parseNoteColumn = (input: string): Result<ScoreEvent> => {
-	const bracketsCorrect = input[0] == "[" && (input[input.length - 1] == "]" || input[input.length - 3] == ']');
+	const bracketsCorrect =
+		input[0] == "[" &&
+		(input[input.length - 1] == "]" || input[input.length - 3] == "]");
 	if (!bracketsCorrect) {
 		return fail("Could not resolve note column");
 	}
 	const resolvedNotes = input
-		.split('')
-		.map(c => ['[', ']', ':', 'w', 'h', 'q', 's', 'e'].includes(c) ? '' : c)
-		.join('')
+		.split("")
+		.map((c) => (["[", "]", ":", "w", "h", "q", "s", "e"].includes(c) ? "" : c))
+		.join("")
 		.split("-")
 		.map(parseNoteLiteral);
 	for (const rawNote of resolvedNotes) {
@@ -77,19 +81,23 @@ const parseNoteColumn = (input: string): Result<ScoreEvent> => {
 			return fail("Could not resolve note column");
 		}
 	}
-	if (input[input.length - 1] == ']') {
+	if (input[input.length - 1] == "]") {
 		return ok(
-			noteEvent(resolvedNotes.filter((rn) => rn.ok).map((rn) => rn.value))
+			noteEvent(resolvedNotes.filter((rn) => rn.ok).map((rn) => rn.value)),
 		);
 	}
 	const possibleDuration = input[input.length - 1];
 	console.log("possible duration: " + possibleDuration);
 
 	if (input[input.length - 2] == ":" && isDuration(possibleDuration)) {
-		return ok(noteEvent(resolvedNotes.filter((rn) => rn.ok).map((rn) => rn.value), possibleDuration));
+		return ok(
+			noteEvent(
+				resolvedNotes.filter((rn) => rn.ok).map((rn) => rn.value),
+				possibleDuration,
+			),
+		);
 	}
-	return fail('could not parse note column');
-
+	return fail("could not parse note column");
 };
 const parseNoteList = (input: string): Result<Sequence> => {
 	const events: Sequence = [];
@@ -101,21 +109,35 @@ const parseNoteList = (input: string): Result<Sequence> => {
 				return fail("could not parse note column: " + noteColumn.errors);
 			}
 			events.push(noteColumn.value);
+		} else if (rawNote[0] == "r") {
+			if (rawNote.length == 3) {
+				const possibleDuration = rawNote[2];
+				const validDuration = isDuration(possibleDuration);
+				if (rawNote[1] == ":" && validDuration) {
+					events.push(restEvent(possibleDuration));
+				} else {
+					return fail("could not resolve rest event");
+				}
+			} else if (rawNote.length == 1) {
+				events.push(restEvent());
+			} else {
+				return fail("could not parse rest");
+			}
 		} else {
-			const [note, possibleDuration] = rawNote.split(':');
+			const [note, possibleDuration] = rawNote.split(":");
 			const noteResult = parseNoteLiteral(note.trim());
 
 			if (!noteResult.ok) {
 				return noteResult;
 			}
 			if (isDuration(possibleDuration)) {
-				events.push(noteEvent([noteResult.value], possibleDuration))
+				events.push(noteEvent([noteResult.value], possibleDuration));
 			}
 			if (!possibleDuration) {
-				events.push(noteEvent([noteResult.value]))
-			};
+				events.push(noteEvent([noteResult.value]));
+			}
 			if (!isDuration(possibleDuration) && possibleDuration) {
-				return fail('could not parse duration value')
+				return fail("could not parse duration value");
 			}
 		}
 	}

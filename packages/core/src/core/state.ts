@@ -5,6 +5,7 @@ import {
 	noteEvent,
 	Sequence,
 	Accidental,
+	restEvent,
 } from "../domain/Note";
 
 export const noteGroups = new Map<string, Sequence>([
@@ -12,6 +13,7 @@ export const noteGroups = new Map<string, Sequence>([
 	[
 		"motif",
 		[
+			restEvent(),
 			noteEvent([new Note(Pitch.C), new Note(Pitch.C, Accidental.Sharp)]),
 			noteEvent([new Note(Pitch.E)]),
 			noteEvent([new Note(Pitch.G)]),
