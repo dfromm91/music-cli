@@ -7,7 +7,7 @@
 	"scripts": {
 		"cli": "npm run dev -w @music-tool/core",
 		"test": "npm run test -w @music-tool/core",
-		"build": "npm run build -w @music-tool/core",
+		"build": "npm run build -w @music-tool/core && npm run build -w @music-tool/web",
 		"web": "npm run dev -w @music-tool/web"
 	},
 	"devDependencies": {

@@ -1,3 +1,3 @@
-import { startDomRepl } from "../../core/src/domRepl";
+import { startDomRepl } from "./domRepl";
 
 startDomRepl();
