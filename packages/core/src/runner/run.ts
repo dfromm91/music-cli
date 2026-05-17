@@ -6,6 +6,18 @@ export const consoleAdapter: AppPort = {
 	write: (message) => console.log(message),
 	writeError: (message) => console.error(message),
 };
+
+export const domAdapter: AppPort = {
+	write: (message) => {
+		const domConsole = document.querySelector(".console-output");
+		if (domConsole) {
+			domConsole.appendChild(document.createElement("<p>" + message + "</p>"));
+		}
+	},
+	writeError: (message) => {
+		console.error(message);
+	},
+};
 export const createRunner = (port: AppPort) => {
 	return (input: string) => {
 		const parsed = parseInput(input);
