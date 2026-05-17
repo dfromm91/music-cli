@@ -1,5 +1,5 @@
 import readline from "node:readline/promises";
-import { run } from "./runner/run";
+import { createRunner, consoleAdapter } from "./runner/run";
 
 export const startRepl = () => {
 	const repl = readline.createInterface({
@@ -17,7 +17,7 @@ export const startRepl = () => {
 			return;
 		}
 
-		run(line);
+		createRunner(consoleAdapter)(line);
 		repl.prompt();
 	});
 

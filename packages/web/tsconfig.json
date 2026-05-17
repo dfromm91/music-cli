@@ -3,8 +3,8 @@
 	"compilerOptions": {
 		"rootDir": "src",
 		"outDir": "dist",
-		"declaration": true,
-		"declarationMap": true
+		"lib": ["ES2022", "DOM"],
+		"types": ["vite/client"]
 	},
 	"include": ["src"]
 }

@@ -1,12 +1,12 @@
 {
-  "name": "@music-tool/core",
-  "version": "0.1.0",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "test": "vitest",
-    "build": "tsc",
-    "dev": "npx tsx src/index.ts"
-  }
+	"name": "@music-tool/core",
+	"version": "0.1.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"test": "vitest",
+		"build": "tsc",
+		"dev": "npx tsx src/cli.ts"
+	}
 }

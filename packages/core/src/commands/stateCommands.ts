@@ -6,57 +6,107 @@ import {
 	printGroup,
 	setGroup,
 } from "../core/state";
-import { StateChange } from "../core/types";
+import { AppPort, StateChange } from "../core/types";
 import { Note, Sequence } from "../domain/Note";
 import { resolveSequence } from "../core/helpers";
 
 export type StateCommand = (args: string[]) => Result<StateChange>;
+export const buildStateCommands = (ap: AppPort): Map<string, StateCommand> => {
+	return new Map<string, StateCommand>([
+		[
+			"append",
+			(args) => {
+				const groupName = args[0];
 
-export const stateCommands = new Map<string, StateCommand>([
-	[
-		"append",
-		(args) => {
-			const groupName = args[0];
+				if (!groupName) return fail("append requires group name.");
+				if (!resolveSequence(groupName).ok)
+					return fail(`Unknown group "${groupName}".`);
 
-			if (!groupName) return fail("append requires group name.");
-			if (!resolveSequence(groupName).ok)
-				return fail(`Unknown group "${groupName}".`);
+				return ok((notes) => appendToGroup(groupName, notes));
+			},
+		],
+		[
+			"set",
+			(args) => {
+				const groupName = args[0];
 
-			return ok((notes) => appendToGroup(groupName, notes));
-		},
-	],
-	[
-		"set",
-		(args) => {
-			const groupName = args[0];
+				if (!groupName) return fail("set requires group name.");
 
-			if (!groupName) return fail("set requires group name.");
+				return ok((notes) => setGroup(groupName, notes));
+			},
+		],
+		[
+			"clear",
+			(args) => {
+				if (args.length !== 1) return fail("clear requires 1 note group.");
 
-			return ok((notes) => setGroup(groupName, notes));
-		},
-	],
-	[
-		"clear",
-		(args) => {
-			if (args.length !== 1) return fail("clear requires 1 note group.");
+				const groupName = args[0];
 
-			const groupName = args[0];
+				if (!groupName) return fail("clear requires group name.");
 
-			if (!groupName) return fail("clear requires group name.");
+				return ok(() => clearGroup(groupName));
+			},
+		],
+		[
+			"print",
+			(args, notes: Sequence = []) => {
+				if (args.length !== 1) return fail("print requires 1 note group.");
 
-			return ok(() => clearGroup(groupName));
-		},
-	],
-	[
-		"print",
-		(args, notes: Sequence = []) => {
-			if (args.length !== 1) return fail("print requires 1 note group.");
+				const groupName = args[0];
 
-			const groupName = args[0];
+				if (!groupName) return fail("print requires group name.");
 
-			if (!groupName) return fail("print requires group name.");
+				return ok((n = notes) => printGroup(groupName, ap, n));
+			},
+		],
+	]);
+};
 
-			return ok((n = notes) => printGroup(groupName, n));
-		},
-	],
-]);
+// export const stateCommands = new Map<string, StateCommand>([
+// 	[
+// 		"append",
+// 		(args) => {
+// 			const groupName = args[0];
+
+// 			if (!groupName) return fail("append requires group name.");
+// 			if (!resolveSequence(groupName).ok)
+// 				return fail(`Unknown group "${groupName}".`);
+
+// 			return ok((notes) => appendToGroup(groupName, notes));
+// 		},
+// 	],
+// 	[
+// 		"set",
+// 		(args) => {
+// 			const groupName = args[0];
+
+// 			if (!groupName) return fail("set requires group name.");
+
+// 			return ok((notes) => setGroup(groupName, notes));
+// 		},
+// 	],
+// 	[
+// 		"clear",
+// 		(args) => {
+// 			if (args.length !== 1) return fail("clear requires 1 note group.");
+
+// 			const groupName = args[0];
+
+// 			if (!groupName) return fail("clear requires group name.");
+
+// 			return ok(() => clearGroup(groupName));
+// 		},
+// 	],
+// 	[
+// 		"print",
+// 		(args, notes: Sequence = []) => {
+// 			if (args.length !== 1) return fail("print requires 1 note group.");
+
+// 			const groupName = args[0];
+
+// 			if (!groupName) return fail("print requires group name.");
+
+// 			return ok((n = notes) => printGroup(groupName, ap, n));
+// 		},
+// 	],
+// ]);

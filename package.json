@@ -1,18 +1,19 @@
 {
-  "name": "music-cli",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "cli": "npm run dev -w @music-tool/core",   
-    "test": "npm run test -w @music-tool/core",
-    "build": "npm run build -w @music-tool/core"
-  },
-  "devDependencies": {
-    "@types/node": "^25.6.0",
-    "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
-  }
+	"name": "music-cli",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"cli": "npm run dev -w @music-tool/core",
+		"test": "npm run test -w @music-tool/core",
+		"build": "npm run build -w @music-tool/core && npm run build -w @music-tool/web",
+		"web": "npm run dev -w @music-tool/web"
+	},
+	"devDependencies": {
+		"@types/node": "^25.6.0",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.5"
+	}
 }

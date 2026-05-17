@@ -7,6 +7,7 @@ import {
 	Accidental,
 	restEvent,
 } from "../domain/Note";
+import { AppPort } from "./types";
 
 export const noteGroups = new Map<string, Sequence>([
 	["score", []],
@@ -53,19 +54,23 @@ const eventToString = (event: ScoreEvent): string => {
 	return `${notes}:${event.duration}`;
 };
 
-export const printGroup = (name: string, events?: Sequence): void => {
+export const printGroup = (
+	name: string,
+	ap: AppPort,
+	events?: Sequence,
+): void => {
 	const resolved = events ?? noteGroups.get(name);
 
 	if (!resolved) {
-		console.log(`Unknown group "${name}"`);
+		ap.writeError(`Unknown group "${name}"`);
 		return;
 	}
 
-	console.log(resolved.map(eventToString).join(" "));
+	ap.write(resolved.map(eventToString).join(" "));
 };
 
-export const printGroups = (): void => {
+export const printGroups = (ap: AppPort): void => {
 	for (const [name, events] of noteGroups) {
-		console.log(`${name}: ${events.map(eventToString).join(" ")}`);
+		ap.write(`${name}: ${events.map(eventToString).join(" ")}`);
 	}
 };

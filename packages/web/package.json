@@ -1,5 +1,17 @@
 {
-  "name": "@music-tool/web",
-  "version": "0.1.0",
-  "private": true
+	"name": "@music-tool/web",
+	"version": "0.1.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite --host 0.0.0.0",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@music-tool/core": "*"
+	},
+	"devDependencies": {
+		"vite": "^7.0.0",
+		"typescript": "^6.0.3"
+	}
 }

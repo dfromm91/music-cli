@@ -1,8 +1,8 @@
 import { printGroups } from "../core/state";
-import { Navigation } from "../core/types";
+import { AppPort, Navigation } from "../core/types";
 
-const printHelp: Navigation = () => {
-	console.log(`
+const printHelp = (ap: AppPort) => {
+	ap.write(`
 ScoreSketch REPL
 
 Commands:
@@ -37,7 +37,23 @@ Other:
 `);
 };
 
-export const navCommands = new Map<string, Navigation>([
-	["help", printHelp],
-	["groups", printGroups],
-]);
+export const buildNavCommands = (ap: AppPort): Map<string, Navigation> => {
+	return new Map<string, Navigation>([
+		[
+			"help",
+			() => {
+				printHelp(ap);
+			},
+		],
+		[
+			"groups",
+			() => {
+				printGroups(ap);
+			},
+		],
+	]);
+};
+// export const navCommands = new Map<string, Navigation>([
+// 	["help", printHelp],
+// 	["groups", printGroups],
+// ]);
