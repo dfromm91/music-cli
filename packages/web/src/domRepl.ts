@@ -1,42 +1,44 @@
 import { createRunner, type AppPort } from "@music-tool/core";
-export const startDomRepl = () => {
-	const form = document.querySelector<HTMLFormElement>("#console-form");
-	const input = document.querySelector<HTMLInputElement>("#console-input");
-	const output = document.querySelector<HTMLDivElement>("#console-output");
+import { Subscriptions } from "@music-tool/core/dist/core/types";
 
-	if (!form || !input || !output) {
-		throw new Error("Missing console elements.");
-	}
+export const startDomRepl = (subscriptions: Subscriptions) => {
+  const form = document.querySelector<HTMLFormElement>("#console-form");
+  const input = document.querySelector<HTMLInputElement>("#console-input");
+  const output = document.querySelector<HTMLDivElement>("#console-output");
 
-	const adapter: AppPort = {
-		write: (message) => {
-			const line = document.createElement("p");
-			line.textContent = message;
-			output.appendChild(line);
-			output.scrollTop = output.scrollHeight;
-		},
-		writeError: (message) => {
-			const line = document.createElement("p");
-			line.textContent = `Error: ${message}`;
-			output.appendChild(line);
-			output.scrollTop = output.scrollHeight;
-		},
-	};
+  if (!form || !input || !output) {
+    throw new Error("Missing console elements.");
+  }
 
-	const run = createRunner(adapter);
+  const adapter: AppPort = {
+    write: (message) => {
+      const line = document.createElement("p");
+      line.textContent = message;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    },
+    writeError: (message) => {
+      const line = document.createElement("p");
+      line.textContent = `Error: ${message}`;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    },
+  };
 
-	form.addEventListener("submit", (event) => {
-		event.preventDefault();
+  const run = createRunner(adapter, subscriptions);
 
-		const command = input.value.trim();
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-		if (!command) {
-			return;
-		}
+    const command = input.value.trim();
 
-		run(command);
+    if (!command) {
+      return;
+    }
 
-		input.value = "";
-		input.focus();
-	});
+    run(command);
+
+    input.value = "";
+    input.focus();
+  });
 };

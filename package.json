@@ -15,5 +15,8 @@
 		"tsx": "^4.21.0",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.5"
+	},
+	"dependencies": {
+		"vexflow": "^5.0.0"
 	}
 }

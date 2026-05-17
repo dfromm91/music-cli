@@ -1,34 +1,34 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>ScoreSketch</title>
-		<link rel="stylesheet" href="/src/styles.css" />
-	</head>
-	<body>
-		<main class="app-shell">
-			<header class="app-header">
-				<h1>ScoreSketch</h1>
-				<button id="run-button">Run</button>
-			</header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ScoreSketch</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <h1>ScoreSketch</h1>
+        <button id="run-button">Run</button>
+      </header>
 
-			<section class="staff-area">
-				<div class="staff-placeholder">Staff canvas will go here</div>
-			</section>
+      <section class="staff-area">
+        <div id="staff-placeholder"></div>
+      </section>
 
-			<section class="console-panel">
-				<div class="console-output" id="console-output">
-					<p>ScoreSketch REPL. Type help for commands.</p>
-				</div>
+      <section class="console-panel">
+        <div class="console-output" id="console-output">
+          <p>ScoreSketch REPL. Type help for commands.</p>
+        </div>
 
-				<form class="console-input-row" id="console-form">
-					<span class="prompt">scoresketch&gt;</span>
-					<input id="console-input" type="text" autofocus />
-				</form>
-			</section>
-		</main>
+        <form class="console-input-row" id="console-form">
+          <span class="prompt">scoresketch&gt;</span>
+          <input id="console-input" type="text" autofocus />
+        </form>
+      </section>
+    </main>
 
-		<script type="module" src="/src/main.ts"></script>
-	</body>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
