@@ -7,8 +7,13 @@ import {
 	Accidental,
 	restEvent,
 } from "../domain/Note";
-import { AppPort } from "./types";
-
+import { AppPort, Subscriptions } from "./types";
+const notifySubscriber = (name: string, s: Sequence, subs?: Subscriptions) => {
+	const sub = subs?.get(name);
+	if (sub) {
+		sub(s);
+	}
+};
 export const noteGroups = new Map<string, Sequence>([
 	["score", []],
 	[
@@ -22,25 +27,37 @@ export const noteGroups = new Map<string, Sequence>([
 	],
 ]);
 
-export const appendToGroup = (name: string, events: Sequence): void => {
+export const appendToGroup = (
+	name: string,
+	events: Sequence,
+	subs?: Subscriptions,
+): void => {
 	const group = noteGroups.get(name);
 
 	if (!group) {
 		return;
 	}
+	const newGroup = [...group, ...events];
+	noteGroups.set(name, newGroup);
 
-	noteGroups.set(name, [...group, ...events]);
+	notifySubscriber(name, newGroup, subs);
 };
 
-export const setGroup = (name: string, events: Sequence): void => {
+export const setGroup = (
+	name: string,
+	events: Sequence,
+	subs?: Subscriptions,
+): void => {
 	noteGroups.set(name, [...events]);
+	notifySubscriber(name, events, subs);
 };
 
-export const clearGroup = (name: string): void => {
+export const clearGroup = (name: string, subs?: Subscriptions): void => {
 	noteGroups.set(name, []);
+	notifySubscriber(name, [], subs);
 };
 
-const eventToString = (event: ScoreEvent): string => {
+export const eventToString = (event: ScoreEvent): string => {
 	if (event.type === "RestEvent") {
 		return `r:${event.duration}`;
 	}

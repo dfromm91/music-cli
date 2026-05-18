@@ -5,11 +5,12 @@ export type StateChange = (notes: Sequence) => void;
 export type Navigation = () => void;
 export type Generator = () => Sequence;
 export type AppPort = {
-	write: (m: string) => void;
-	writeError: (e: string) => void;
+  write: (m: string) => void;
+  writeError: (e: string) => void;
 };
 export type Pipeline = {
-	stateChange: StateChange;
-	transformations: Transform[];
-	substitution: Sequence;
+  stateChange: StateChange;
+  transformations: Transform[];
+  substitution: Sequence;
 };
+export type Subscriptions = Map<string, (s: Sequence) => void>;
