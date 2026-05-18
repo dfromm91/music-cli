@@ -1,4 +1,12 @@
-import { Accidental, Note, Pitch } from "../domain/Note";
+import {
+	Accidental,
+	Duration,
+	Note,
+	Pitch,
+	Sequence,
+	ScoreEvent,
+} from "../domain/Note";
+import { TimeSignature } from "../core/types";
 import { mod } from "./helpers";
 
 const pitchSemitones: Record<Pitch, number> = {
@@ -41,4 +49,34 @@ export const fromSemitone = (abs: number): Note => {
 	const [pitch, accidental] = sharpSpellings[semi];
 
 	return new Note(pitch, accidental, octave);
+};
+const durationToNumber = new Map<Duration, number>([
+	["w", 4.0],
+	["h", 2.0],
+	["q", 1.0],
+	["e", 0.5],
+	["s", 0.25],
+]);
+export const divideSequenceIntoMeasures = (
+	sequence: Sequence,
+	ts: TimeSignature = { numerator: 4, denominator: 4 }
+): Sequence[] => {
+	const measures = [];
+	const targetBeats = (ts.numerator / ts.denominator) * 4.0;
+	let measure: Sequence = [];
+	let runningTotal = 0.0;
+	for (let i = 0; i < sequence.length; i++) {
+		runningTotal += durationToNumber.get(sequence[i].duration)!;
+		if (runningTotal <= targetBeats) {
+			measure.push(sequence[i]);
+		} else {
+			measures.push([...measure]);
+			measure = [sequence[i]];
+			runningTotal = durationToNumber.get(sequence[i].duration)!;
+		}
+		if (i == sequence.length - 1) {
+			measures.push([...measure]);
+		}
+	}
+	return measures;
 };

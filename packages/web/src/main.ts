@@ -5,6 +5,7 @@ import {
 	type ScoreEvent,
 } from "@music-tool/core/dist/domain/Note";
 import { eventToString } from "@music-tool/core/dist/core/state";
+import { divideSequenceIntoMeasures } from "@music-tool/core/src/core/musicMath";
 
 type onUpdate = (s: Sequence) => void;
 
@@ -29,10 +30,14 @@ export const renderScore = (sequence: Sequence): void => {
 		return;
 	}
 
-	const measures = chunkSequence(sequence, NOTES_PER_MEASURE);
+	const measures = divideSequenceIntoMeasures(sequence, {
+		numerator: 4,
+		denominator: 4,
+	});
+	console.log(measures);
 	const rendererWidth = Math.max(
 		900,
-		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2,
+		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2
 	);
 
 	const { Factory } = vexflow;
@@ -84,15 +89,15 @@ export const renderScore = (sequence: Sequence): void => {
 	}
 };
 
-const chunkSequence = <T>(items: T[], size: number): T[][] => {
-	const chunks: T[][] = [];
+// const chunkSequence = <T>(items: T[], size: number): T[][] => {
+// 	const chunks: T[][] = [];
 
-	for (let i = 0; i < items.length; i += size) {
-		chunks.push(items.slice(i, i + size));
-	}
+// 	for (let i = 0; i < items.length; i += size) {
+// 		chunks.push(items.slice(i, i + size));
+// 	}
 
-	return chunks;
-};
+// 	return chunks;
+// };
 
 export const sequenceToEasyScoreString = (sequence: Sequence): string => {
 	return sequence.map(eventToEasyScoreToken).join(", ");
