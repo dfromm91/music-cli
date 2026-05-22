@@ -63,6 +63,7 @@ const eventStemDirection = (event: ScoreEvent): "up" | "down" => {
 export const renderScore = (sequence: Sequence): void => {
 	const staffElement = document.getElementById(STAFF_ELEMENT_ID);
 	const clef = "treble";
+
 	if (!staffElement) {
 		throw new Error("Missing staff element.");
 	}
@@ -78,13 +79,13 @@ export const renderScore = (sequence: Sequence): void => {
 		numerator: 4,
 		denominator: 4,
 	});
-	console.log(measures);
+
 	const rendererWidth = Math.max(
 		900,
 		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2,
 	);
 
-	const { Factory } = vexflow;
+	const { Factory, Beam } = vexflow;
 
 	const vf = new Factory({
 		renderer: {
@@ -95,6 +96,7 @@ export const renderScore = (sequence: Sequence): void => {
 	});
 
 	const score = vf.EasyScore();
+	const allBeams: InstanceType<typeof Beam>[] = [];
 
 	try {
 		for (let i = 0; i < measures.length; i++) {
@@ -109,9 +111,12 @@ export const renderScore = (sequence: Sequence): void => {
 			if (notes.length === 0) {
 				continue;
 			}
-			const voice = score.voice(notes, { time: "4/4" });
 
+			const voice = score.voice(notes, { time: "4/4" });
 			voice.setStrict(false);
+
+			const beams = Beam.generateBeams(notes);
+			allBeams.push(...beams);
 
 			const system = vf.System({
 				x: LEFT_MARGIN + i * MEASURE_WIDTH,
@@ -129,6 +134,10 @@ export const renderScore = (sequence: Sequence): void => {
 		}
 
 		vf.draw();
+
+		for (const beam of allBeams) {
+			beam.setContext(vf.getContext()).draw();
+		}
 	} catch (error) {
 		staffElement.textContent =
 			error instanceof Error
