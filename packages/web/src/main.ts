@@ -169,7 +169,7 @@ const eventToEasyScoreToken = (event: ScoreEvent): string => {
 	const duration = durationToEasyScore(event.duration);
 
 	if (event.type === "RestEvent") {
-		return `B4/${duration}r`;
+		return `B4/${duration}/r`;
 	}
 
 	const notes = event.notes.map((note) => note.toString()).join(",");
