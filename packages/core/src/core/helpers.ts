@@ -12,6 +12,7 @@ import {
 } from "../domain/Note";
 import { noteGroups } from "../core/state";
 import { generatorCommands } from "../commands/GeneratorCommands";
+import { durationToNumber } from "./musicMath";
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
 
 const pitchMap: Record<string, Pitch> = {
@@ -62,6 +63,49 @@ const parseNoteLiteral = (input: string): Result<Note> => {
 };
 const isDuration = (input: string): input is Duration => {
 	return ["w", "h", "q", "e", "s"].includes(input);
+};
+const parseExcerpt = (input: string): Result<Sequence> => {
+	const [start, end] = input.replace("@", "").split("-");
+	const regEx = /^\d{1,3}\/\d+(?:\.\d+)?$/;
+	const result = regEx.test(start) && regEx.test(end);
+	if (!result || !start || !end) {
+		return fail("invalid score selection");
+	}
+	const score = noteGroups.get("score")!;
+	const [startBar, startBeat] = start.split("/");
+	const startBarNumber = parseInt(startBar)!;
+	const startBeatNumber = parseFloat(startBeat)!;
+	const [endBar, endBeat] = end.split("/");
+	const endBarNumber = parseInt(endBar)!;
+	const endBeatNumber = parseFloat(endBeat)!;
+	if (startBarNumber < 1 || endBarNumber < 1 || endBarNumber < startBarNumber) {
+		return fail("invalid score selection");
+	}
+	const startIndex = getNoteIndex(score, startBarNumber, startBeatNumber);
+	const endIndex = getNoteIndex(score, endBarNumber, endBeatNumber);
+	if (startIndex == -1 || endIndex == -1) {
+		return fail("invalid score selection");
+	}
+	return ok([...score.slice(startIndex, endIndex)]);
+};
+
+const getNoteIndex = (
+	sequence: Sequence,
+	bar: number,
+	beat: number,
+): number => {
+	const beatsPerBar = 4; // default to 4/4 for now
+	const beatTarget = (bar - 1) * beatsPerBar + beat - 1;
+	let currentBeat = 0;
+	let sequenceIndex = 0;
+	while (currentBeat < beatTarget) {
+		if (sequenceIndex >= sequence.length) {
+			return -1;
+		}
+		currentBeat += durationToNumber.get(sequence[sequenceIndex].duration!)!;
+		sequenceIndex++;
+	}
+	return sequenceIndex;
 };
 const parseNoteColumn = (input: string): Result<ScoreEvent> => {
 	const bracketsCorrect =
@@ -163,7 +207,10 @@ export const resolveSequence = (name: string): Result<Sequence> => {
 
 		return ok(generatorResult.value());
 	}
-
+	const possibleExcerpt = name[0] == "@";
+	if (possibleExcerpt) {
+		return parseExcerpt(name);
+	}
 	return parseNoteList(name);
 };
 

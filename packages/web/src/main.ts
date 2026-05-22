@@ -102,13 +102,37 @@ export const renderScore = (sequence: Sequence): void => {
 export const sequenceToEasyScoreString = (sequence: Sequence): string => {
 	return sequence.map(eventToEasyScoreToken).join(", ");
 };
-
-const eventToEasyScoreToken = (event: ScoreEvent): string => {
-	const raw = eventToString(event);
-
-	return raw.replaceAll(":", "/").replaceAll("[", "(").replaceAll("]", ")");
+const durationToEasyScore = (duration: string): string => {
+	switch (duration) {
+		case "w":
+			return "w";
+		case "h":
+			return "h";
+		case "q":
+			return "q";
+		case "e":
+			return "8";
+		case "s":
+			return "16";
+		default:
+			return duration;
+	}
 };
+const eventToEasyScoreToken = (event: ScoreEvent): string => {
+	const duration = durationToEasyScore(event.duration);
 
+	if (event.type === "RestEvent") {
+		return `B4/${duration}r`;
+	}
+
+	const notes = event.notes.map((note) => note.toString()).join(",");
+
+	if (event.notes.length > 1) {
+		return `(${notes})/${duration}`;
+	}
+
+	return `${notes}/${duration}`;
+};
 export const subscriptions = new Map<string, onUpdate>([
 	["score", renderScore],
 ]);

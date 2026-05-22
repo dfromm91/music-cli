@@ -50,7 +50,7 @@ export const fromSemitone = (abs: number): Note => {
 
 	return new Note(pitch, accidental, octave);
 };
-const durationToNumber = new Map<Duration, number>([
+export const durationToNumber = new Map<Duration, number>([
 	["w", 4.0],
 	["h", 2.0],
 	["q", 1.0],
@@ -59,7 +59,7 @@ const durationToNumber = new Map<Duration, number>([
 ]);
 export const divideSequenceIntoMeasures = (
 	sequence: Sequence,
-	ts: TimeSignature = { numerator: 4, denominator: 4 }
+	ts: TimeSignature = { numerator: 4, denominator: 4 },
 ): Sequence[] => {
 	const measures = [];
 	const targetBeats = (ts.numerator / ts.denominator) * 4.0;
