@@ -15,10 +15,54 @@ const MEASURE_WIDTH = 180;
 const LEFT_MARGIN = 20;
 const TOP_MARGIN = 40;
 const STAFF_HEIGHT = 180;
+const noteToMidi = (note: string): number => {
+	const match = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
 
+	if (!match) {
+		throw new Error(`Invalid note: ${note}`);
+	}
+
+	const [, letter, accidental, octaveString] = match;
+
+	const pitchClasses: Record<string, number> = {
+		C: 0,
+		D: 2,
+		E: 4,
+		F: 5,
+		G: 7,
+		A: 9,
+		B: 11,
+	};
+
+	let midi =
+		pitchClasses[letter.toUpperCase()] + (Number(octaveString) + 1) * 12;
+
+	if (accidental === "#") {
+		midi++;
+	}
+
+	if (accidental === "b") {
+		midi--;
+	}
+
+	return midi;
+};
+
+const eventStemDirection = (event: ScoreEvent): "up" | "down" => {
+	if (event.type === "RestEvent") {
+		return "down";
+	}
+
+	const lowestNote = Math.min(
+		...event.notes.map((note) => noteToMidi(note.toString())),
+	);
+
+	return lowestNote < noteToMidi("C5") ? "up" : "down";
+};
+// hardcoded treble clef
 export const renderScore = (sequence: Sequence): void => {
 	const staffElement = document.getElementById(STAFF_ELEMENT_ID);
-
+	const clef = "treble";
 	if (!staffElement) {
 		throw new Error("Missing staff element.");
 	}
@@ -37,7 +81,7 @@ export const renderScore = (sequence: Sequence): void => {
 	console.log(measures);
 	const rendererWidth = Math.max(
 		900,
-		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2
+		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2,
 	);
 
 	const { Factory } = vexflow;
@@ -54,13 +98,17 @@ export const renderScore = (sequence: Sequence): void => {
 
 	try {
 		for (let i = 0; i < measures.length; i++) {
-			const noteString = sequenceToEasyScoreString(measures[i]);
+			const notes = measures[i].flatMap((event) => {
+				const noteString = eventToEasyScoreToken(event);
 
-			if (!noteString) {
+				return score.notes(noteString, {
+					stem: eventStemDirection(event),
+				});
+			});
+
+			if (notes.length === 0) {
 				continue;
 			}
-
-			const notes = score.notes(noteString, { stem: "down" });
 			const voice = score.voice(notes, { time: "4/4" });
 
 			voice.setStrict(false);
@@ -76,7 +124,7 @@ export const renderScore = (sequence: Sequence): void => {
 			});
 
 			if (i === 0) {
-				stave.addClef("treble").addTimeSignature("4/4");
+				stave.addClef(clef).addTimeSignature("4/4");
 			}
 		}
 
@@ -88,16 +136,6 @@ export const renderScore = (sequence: Sequence): void => {
 				: "Unknown render error.";
 	}
 };
-
-// const chunkSequence = <T>(items: T[], size: number): T[][] => {
-// 	const chunks: T[][] = [];
-
-// 	for (let i = 0; i < items.length; i += size) {
-// 		chunks.push(items.slice(i, i + size));
-// 	}
-
-// 	return chunks;
-// };
 
 export const sequenceToEasyScoreString = (sequence: Sequence): string => {
 	return sequence.map(eventToEasyScoreToken).join(", ");
