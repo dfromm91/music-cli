@@ -175,7 +175,7 @@ const eventToEasyScoreToken = (event: ScoreEvent): string => {
     return `B4/${duration}/r`;
   }
 
-  const notes = event.notes.map((note) => note.toString()).join(",");
+  const notes = event.notes.map((note) => note.toString()).join(" ");
 
   if (event.notes.length > 1) {
     return `(${notes})/${duration}`;
