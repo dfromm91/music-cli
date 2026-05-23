@@ -1,8 +1,8 @@
 import vexflow from "vexflow";
 import { startDomRepl } from "./domRepl";
 import {
-	type Sequence,
-	type ScoreEvent,
+  type Sequence,
+  type ScoreEvent,
 } from "@music-tool/core/dist/domain/Note";
 import { eventToString } from "@music-tool/core/dist/core/state";
 import { divideSequenceIntoMeasures } from "@music-tool/core/src/core/musicMath";
@@ -10,178 +10,181 @@ import { divideSequenceIntoMeasures } from "@music-tool/core/src/core/musicMath"
 type onUpdate = (s: Sequence) => void;
 
 const STAFF_ELEMENT_ID = "staff-placeholder";
-const NOTES_PER_MEASURE = 4;
 const MEASURE_WIDTH = 180;
 const LEFT_MARGIN = 20;
 const TOP_MARGIN = 40;
-const STAFF_HEIGHT = 180;
+
 const noteToMidi = (note: string): number => {
-	const match = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
+  const match = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
 
-	if (!match) {
-		throw new Error(`Invalid note: ${note}`);
-	}
+  if (!match) {
+    throw new Error(`Invalid note: ${note}`);
+  }
 
-	const [, letter, accidental, octaveString] = match;
+  const [, letter, accidental, octaveString] = match;
 
-	const pitchClasses: Record<string, number> = {
-		C: 0,
-		D: 2,
-		E: 4,
-		F: 5,
-		G: 7,
-		A: 9,
-		B: 11,
-	};
+  const pitchClasses: Record<string, number> = {
+    C: 0,
+    D: 2,
+    E: 4,
+    F: 5,
+    G: 7,
+    A: 9,
+    B: 11,
+  };
 
-	let midi =
-		pitchClasses[letter.toUpperCase()] + (Number(octaveString) + 1) * 12;
+  let midi =
+    pitchClasses[letter.toUpperCase()] + (Number(octaveString) + 1) * 12;
 
-	if (accidental === "#") {
-		midi++;
-	}
+  if (accidental === "#") {
+    midi++;
+  }
 
-	if (accidental === "b") {
-		midi--;
-	}
+  if (accidental === "b") {
+    midi--;
+  }
 
-	return midi;
+  return midi;
 };
 
 const eventStemDirection = (event: ScoreEvent): "up" | "down" => {
-	if (event.type === "RestEvent") {
-		return "down";
-	}
+  if (event.type === "RestEvent") {
+    return "down";
+  }
 
-	const lowestNote = Math.min(
-		...event.notes.map((note) => noteToMidi(note.toString())),
-	);
+  const lowestNote = Math.min(
+    ...event.notes.map((note) => noteToMidi(note.toString())),
+  );
 
-	return lowestNote < noteToMidi("C5") ? "up" : "down";
+  return lowestNote < noteToMidi("C5") ? "up" : "down";
 };
 // hardcoded treble clef
 export const renderScore = (sequence: Sequence): void => {
-	const staffElement = document.getElementById(STAFF_ELEMENT_ID);
-	const clef = "treble";
+  const staffElement = document.getElementById(STAFF_ELEMENT_ID);
+  const clef = "treble";
 
-	if (!staffElement) {
-		throw new Error("Missing staff element.");
-	}
+  if (!staffElement) {
+    throw new Error("Missing staff element.");
+  }
 
-	staffElement.innerHTML = "";
+  staffElement.innerHTML = "";
 
-	if (sequence.length === 0) {
-		staffElement.textContent = "No score yet.";
-		return;
-	}
+  if (sequence.length === 0) {
+    staffElement.textContent = "No score yet.";
+    return;
+  }
+  const MeasuresPerLine = 4;
+  let currentLine = 0;
+  const measures = divideSequenceIntoMeasures(sequence, {
+    numerator: 4,
+    denominator: 4,
+  });
+  const buffer = 20;
+  const rendererWidth = MeasuresPerLine * MEASURE_WIDTH + LEFT_MARGIN + buffer;
+  const lineSpacing = 80;
+  const STAFF_HEIGHT =
+    Math.ceil(measures.length / MeasuresPerLine) * lineSpacing +
+    buffer +
+    TOP_MARGIN;
+  const { Factory, Beam } = vexflow;
 
-	const measures = divideSequenceIntoMeasures(sequence, {
-		numerator: 4,
-		denominator: 4,
-	});
+  const vf = new Factory({
+    renderer: {
+      elementId: STAFF_ELEMENT_ID,
+      width: rendererWidth,
+      height: STAFF_HEIGHT,
+    },
+  });
 
-	const rendererWidth = Math.max(
-		900,
-		measures.length * MEASURE_WIDTH + LEFT_MARGIN * 2,
-	);
+  const score = vf.EasyScore();
+  const allBeams: InstanceType<typeof Beam>[] = [];
 
-	const { Factory, Beam } = vexflow;
+  try {
+    for (let i = 0; i < measures.length; i++) {
+      const notes = measures[i].flatMap((event) => {
+        const noteString = eventToEasyScoreToken(event);
 
-	const vf = new Factory({
-		renderer: {
-			elementId: STAFF_ELEMENT_ID,
-			width: rendererWidth,
-			height: STAFF_HEIGHT,
-		},
-	});
+        return score.notes(noteString, {
+          stem: eventStemDirection(event),
+        });
+      });
+      if (i != 0 && i % MeasuresPerLine == 0) {
+        currentLine++;
+      }
+      if (notes.length === 0) {
+        continue;
+      }
 
-	const score = vf.EasyScore();
-	const allBeams: InstanceType<typeof Beam>[] = [];
+      const voice = score.voice(notes, { time: "4/4" });
+      voice.setStrict(false);
 
-	try {
-		for (let i = 0; i < measures.length; i++) {
-			const notes = measures[i].flatMap((event) => {
-				const noteString = eventToEasyScoreToken(event);
+      const beams = Beam.generateBeams(notes);
+      allBeams.push(...beams);
 
-				return score.notes(noteString, {
-					stem: eventStemDirection(event),
-				});
-			});
+      const system = vf.System({
+        x: LEFT_MARGIN + (i % MeasuresPerLine) * MEASURE_WIDTH,
+        y: TOP_MARGIN + 80 * currentLine,
+        width: MEASURE_WIDTH,
+      });
 
-			if (notes.length === 0) {
-				continue;
-			}
+      const stave = system.addStave({
+        voices: [voice],
+      });
 
-			const voice = score.voice(notes, { time: "4/4" });
-			voice.setStrict(false);
+      if (i === 0) {
+        stave.addClef(clef).addTimeSignature("4/4");
+      }
+    }
 
-			const beams = Beam.generateBeams(notes);
-			allBeams.push(...beams);
+    vf.draw();
 
-			const system = vf.System({
-				x: LEFT_MARGIN + i * MEASURE_WIDTH,
-				y: TOP_MARGIN,
-				width: MEASURE_WIDTH,
-			});
-
-			const stave = system.addStave({
-				voices: [voice],
-			});
-
-			if (i === 0) {
-				stave.addClef(clef).addTimeSignature("4/4");
-			}
-		}
-
-		vf.draw();
-
-		for (const beam of allBeams) {
-			beam.setContext(vf.getContext()).draw();
-		}
-	} catch (error) {
-		staffElement.textContent =
-			error instanceof Error
-				? `Render error: ${error.message}`
-				: "Unknown render error.";
-	}
+    for (const beam of allBeams) {
+      beam.setContext(vf.getContext()).draw();
+    }
+  } catch (error) {
+    staffElement.textContent =
+      error instanceof Error
+        ? `Render error: ${error.message}`
+        : "Unknown render error.";
+  }
 };
 
 export const sequenceToEasyScoreString = (sequence: Sequence): string => {
-	return sequence.map(eventToEasyScoreToken).join(", ");
+  return sequence.map(eventToEasyScoreToken).join(", ");
 };
 const durationToEasyScore = (duration: string): string => {
-	switch (duration) {
-		case "w":
-			return "w";
-		case "h":
-			return "h";
-		case "q":
-			return "q";
-		case "e":
-			return "8";
-		case "s":
-			return "16";
-		default:
-			return duration;
-	}
+  switch (duration) {
+    case "w":
+      return "w";
+    case "h":
+      return "h";
+    case "q":
+      return "q";
+    case "e":
+      return "8";
+    case "s":
+      return "16";
+    default:
+      return duration;
+  }
 };
 const eventToEasyScoreToken = (event: ScoreEvent): string => {
-	const duration = durationToEasyScore(event.duration);
+  const duration = durationToEasyScore(event.duration);
 
-	if (event.type === "RestEvent") {
-		return `B4/${duration}/r`;
-	}
+  if (event.type === "RestEvent") {
+    return `B4/${duration}/r`;
+  }
 
-	const notes = event.notes.map((note) => note.toString()).join(",");
+  const notes = event.notes.map((note) => note.toString()).join(",");
 
-	if (event.notes.length > 1) {
-		return `(${notes})/${duration}`;
-	}
+  if (event.notes.length > 1) {
+    return `(${notes})/${duration}`;
+  }
 
-	return `${notes}/${duration}`;
+  return `${notes}/${duration}`;
 };
 export const subscriptions = new Map<string, onUpdate>([
-	["score", renderScore],
+  ["score", renderScore],
 ]);
 
 startDomRepl(subscriptions);
