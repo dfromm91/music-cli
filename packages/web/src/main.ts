@@ -123,7 +123,7 @@ export const renderScore = (sequence: Sequence): void => {
 
       const system = vf.System({
         x: LEFT_MARGIN + (i % MeasuresPerLine) * MEASURE_WIDTH,
-        y: TOP_MARGIN + 80 * currentLine,
+        y: TOP_MARGIN + lineSpacing * currentLine,
         width: MEASURE_WIDTH,
       });
 
@@ -186,5 +186,21 @@ const eventToEasyScoreToken = (event: ScoreEvent): string => {
 export const subscriptions = new Map<string, onUpdate>([
   ["score", renderScore],
 ]);
+const PRINT_PDF_BUTTON_ID = "print-pdf-button";
 
+const printPdf = (): void => {
+  window.print();
+};
+
+const wirePrintPdfButton = (): void => {
+  const button = document.getElementById(PRINT_PDF_BUTTON_ID);
+
+  if (!button) {
+    throw new Error("Missing print PDF button.");
+  }
+
+  button.addEventListener("click", printPdf);
+};
+
+wirePrintPdfButton();
 startDomRepl(subscriptions);
