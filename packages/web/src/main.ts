@@ -10,7 +10,7 @@ import { divideSequenceIntoMeasures } from "@music-tool/core/src/core/musicMath"
 type onUpdate = (s: Sequence) => void;
 
 const STAFF_ELEMENT_ID = "staff-placeholder";
-const MEASURE_WIDTH = 180;
+const MEASURE_WIDTH = 250;
 const LEFT_MARGIN = 20;
 const TOP_MARGIN = 40;
 
