@@ -2,6 +2,7 @@ import { createRunner, type AppPort } from "@music-tool/core";
 import { Subscriptions } from "@music-tool/core/dist/core/types";
 import { playSequence } from "./playSound";
 import { Sequence } from "tone";
+import { renderScore } from "./main";
 
 export const startDomRepl = (subscriptions: Subscriptions) => {
   const form = document.querySelector<HTMLFormElement>("#console-form");
@@ -26,6 +27,7 @@ export const startDomRepl = (subscriptions: Subscriptions) => {
       output.scrollTop = output.scrollHeight;
     },
     play: playSequence,
+    show: renderScore,
   };
 
   const run = createRunner(adapter, subscriptions);

@@ -8,6 +8,7 @@ export type AppPort = {
   write: (m: string) => void;
   writeError: (e: string) => void;
   play?: (sequence: Sequence) => void;
+  show?: (sequence: Sequence) => void;
 };
 export type Pipeline = {
   stateChange: StateChange;

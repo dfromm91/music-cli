@@ -96,3 +96,8 @@ export const playSequence = (ap: AppPort, sequence: Sequence): void => {
     ap.play(sequence);
   }
 };
+export const showSequence = (ap: AppPort, sequence: Sequence): void => {
+  if (ap.show) {
+    ap.show(sequence);
+  }
+};

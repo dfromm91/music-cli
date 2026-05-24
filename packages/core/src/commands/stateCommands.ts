@@ -6,6 +6,7 @@ import {
   playSequence,
   printGroup,
   setGroup,
+  showSequence,
 } from "../core/state";
 import { AppPort, StateChange, Subscriptions } from "../core/types";
 import { Note, Sequence } from "../domain/Note";
@@ -68,8 +69,14 @@ export const buildStateCommands = (
       "play",
       (args) => {
         if (args.length != 1) return fail("play requires one note group");
-        const groupName = args[0];
         return ok((notes) => playSequence(ap, notes));
+      },
+    ],
+    [
+      "show",
+      (args) => {
+        if (args.length != 1) return fail("show requires one note group");
+        return ok((notes) => showSequence(ap, notes));
       },
     ],
   ]);
