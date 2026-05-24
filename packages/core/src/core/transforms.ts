@@ -1,93 +1,103 @@
-import { Note, NoteEvent, ScoreEvent } from "../domain/Note";
+import { Sequence } from "tone";
+import { Duration, Note, NoteEvent, ScoreEvent } from "../domain/Note";
 import { mod } from "./helpers";
 import { fromSemitone, toSemitone } from "./musicMath";
 import { Transform } from "./types";
 
 const isNoteEvent = (event: ScoreEvent): event is NoteEvent => {
-	return event.type === "NoteEvent";
+  return event.type === "NoteEvent";
 };
 
 const mapNotes = (event: ScoreEvent, fn: (note: Note) => Note): ScoreEvent => {
-	if (!isNoteEvent(event)) {
-		return event;
-	}
+  if (!isNoteEvent(event)) {
+    return event;
+  }
 
-	return {
-		...event,
-		notes: event.notes.map(fn),
-	};
+  return {
+    ...event,
+    notes: event.notes.map(fn),
+  };
 };
 
 export const transpose =
-	(n: number): Transform =>
-	(sequence) =>
-		sequence.map((event) =>
-			mapNotes(event, (note) => fromSemitone(toSemitone(note) + n)),
-		);
+  (n: number): Transform =>
+  (sequence) =>
+    sequence.map((event) =>
+      mapNotes(event, (note) => fromSemitone(toSemitone(note) + n)),
+    );
 
 export const octaveShift =
-	(n: number): Transform =>
-	(sequence) =>
-		sequence.map((event) =>
-			mapNotes(
-				event,
-				(note) => new Note(note.pitch, note.accidental, note.octave + n),
-			),
-		);
+  (n: number): Transform =>
+  (sequence) =>
+    sequence.map((event) =>
+      mapNotes(
+        event,
+        (note) => new Note(note.pitch, note.accidental, note.octave + n),
+      ),
+    );
+export const setDuration =
+  (d: Duration): Transform =>
+  (sequence) =>
+    sequence.map((event) => {
+      if (event.type == "NoteEvent") {
+        return { type: "NoteEvent", notes: event.notes, duration: d };
+      }
+      return { type: "RestEvent", duration: d };
+    });
 
 export const reverse: Transform = (sequence) => {
-	return [...sequence].reverse();
+  return [...sequence].reverse();
 };
 
 export const repeat =
-	(times: number): Transform =>
-	(sequence) =>
-		Array.from({ length: Math.max(0, times) }).flatMap(() => sequence);
+  (times: number): Transform =>
+  (sequence) =>
+    Array.from({ length: Math.max(0, times) }).flatMap(() => sequence);
 
 export const rotate =
-	(steps: number): Transform =>
-	(sequence) => {
-		if (!sequence.length) return sequence;
+  (steps: number): Transform =>
+  (sequence) => {
+    if (!sequence.length) return sequence;
 
-		const n = mod(steps, sequence.length);
+    const n = mod(steps, sequence.length);
 
-		return [...sequence.slice(n), ...sequence.slice(0, n)];
-	};
+    return [...sequence.slice(n), ...sequence.slice(0, n)];
+  };
 
 export const take =
-	(n: number): Transform =>
-	(sequence) =>
-		sequence.slice(0, n);
+  (n: number): Transform =>
+  (sequence) =>
+    sequence.slice(0, n);
 
 export const drop =
-	(n: number): Transform =>
-	(sequence) =>
-		sequence.slice(n);
+  (n: number): Transform =>
+  (sequence) =>
+    sequence.slice(n);
 
 export const slice =
-	(a: number, b?: number): Transform =>
-	(sequence) =>
-		sequence.slice(a, b);
+  (a: number, b?: number): Transform =>
+  (sequence) =>
+    sequence.slice(a, b);
 
 export const invert = (): Transform => (sequence) => {
-	const firstNote = sequence
-		.filter(isNoteEvent)
-		.flatMap((event) => event.notes)
-		.at(0);
+  const firstNote = sequence
+    .filter(isNoteEvent)
+    .flatMap((event) => event.notes)
+    .at(0);
 
-	if (!firstNote) {
-		return sequence;
-	}
+  if (!firstNote) {
+    return sequence;
+  }
 
-	const pivot = toSemitone(firstNote);
+  const pivot = toSemitone(firstNote);
 
-	return sequence.map((event) =>
-		mapNotes(event, (note) => fromSemitone(pivot - (toSemitone(note) - pivot))),
-	);
+  return sequence.map((event) =>
+    mapNotes(event, (note) => fromSemitone(pivot - (toSemitone(note) - pivot))),
+  );
 };
 
 export const compose = (transforms: Transform[]): Transform =>
-	transforms.reduce(
-		(acc, transform) => (sequence) => transform(acc(sequence)),
-		(sequence) => sequence,
-	);
+  transforms.reduce(
+    (acc, transform) => (sequence) => transform(acc(sequence)),
+    (sequence) => sequence,
+  );
