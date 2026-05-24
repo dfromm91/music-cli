@@ -1,7 +1,7 @@
 import * as Tone from "tone";
 import type { Duration, Sequence } from "@music-tool/core/dist/domain/Note";
 import { noteGroups } from "@music-tool/core/dist/core/state";
-
+let playbackFinishedTimeoutId: number | null = null;
 type SynthDuration = {
   toneDuration: string;
   beats: number;
@@ -66,6 +66,11 @@ export const stopPlayback = (): void => {
 
   scheduledEventIds = [];
 
+  if (playbackFinishedTimeoutId !== null) {
+    window.clearTimeout(playbackFinishedTimeoutId);
+    playbackFinishedTimeoutId = null;
+  }
+
   if (synth) {
     synth.releaseAll();
   }
@@ -106,9 +111,17 @@ export const playSequence = async (
 
   const totalDurationSeconds = startBeat * secondsPerBeat;
 
-  const finishedEventId = Tone.Transport.schedule(() => {
+  setPlaybackButtonState(true);
+  Tone.Transport.start();
+
+  playbackFinishedTimeoutId = window.setTimeout(() => {
     Tone.Transport.stop();
     Tone.Transport.position = 0;
+
+    for (const eventId of scheduledEventIds) {
+      Tone.Transport.clear(eventId);
+    }
+
     scheduledEventIds = [];
 
     if (synth) {
@@ -116,9 +129,10 @@ export const playSequence = async (
     }
 
     setPlaybackButtonState(false);
-  }, totalDurationSeconds);
+    playbackFinishedTimeoutId = null;
+  }, totalDurationSeconds * 1000);
 
-  scheduledEventIds.push(finishedEventId);
+  scheduledEventIds.push(playbackFinishedTimeoutId);
 
   setPlaybackButtonState(true);
   Tone.Transport.start();

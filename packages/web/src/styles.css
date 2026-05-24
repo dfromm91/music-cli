@@ -125,7 +125,7 @@ body {
   white-space: nowrap;
 }
 
-.console-input-row input {
+.console-input-row textarea {
   flex: 1;
 
   background: transparent;
@@ -133,8 +133,15 @@ body {
 
   color: white;
   font: inherit;
+  line-height: 1.4;
 
   outline: none;
+  resize: none;
+
+  overflow-y: auto;
+
+  min-height: 1.4rem;
+  max-height: 220px;
 }
 
 /* PLAYBACK BUTTONS */
