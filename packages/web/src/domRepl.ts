@@ -1,44 +1,47 @@
 import { createRunner, type AppPort } from "@music-tool/core";
 import { Subscriptions } from "@music-tool/core/dist/core/types";
+import { playSequence } from "./playSound";
+import { Sequence } from "tone";
 
 export const startDomRepl = (subscriptions: Subscriptions) => {
-	const form = document.querySelector<HTMLFormElement>("#console-form");
-	const input = document.querySelector<HTMLInputElement>("#console-input");
-	const output = document.querySelector<HTMLDivElement>("#console-output");
+  const form = document.querySelector<HTMLFormElement>("#console-form");
+  const input = document.querySelector<HTMLInputElement>("#console-input");
+  const output = document.querySelector<HTMLDivElement>("#console-output");
 
-	if (!form || !input || !output) {
-		throw new Error("Missing console elements.");
-	}
+  if (!form || !input || !output) {
+    throw new Error("Missing console elements.");
+  }
 
-	const adapter: AppPort = {
-		write: (message) => {
-			const line = document.createElement("p");
-			line.textContent = message;
-			output.appendChild(line);
-			output.scrollTop = output.scrollHeight;
-		},
-		writeError: (message) => {
-			const line = document.createElement("p");
-			line.textContent = `Error: ${message}`;
-			output.appendChild(line);
-			output.scrollTop = output.scrollHeight;
-		},
-	};
+  const adapter: AppPort = {
+    write: (message) => {
+      const line = document.createElement("p");
+      line.textContent = message;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    },
+    writeError: (message) => {
+      const line = document.createElement("p");
+      line.textContent = `Error: ${message}`;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    },
+    play: playSequence,
+  };
 
-	const run = createRunner(adapter, subscriptions);
+  const run = createRunner(adapter, subscriptions);
 
-	form.addEventListener("submit", (event) => {
-		event.preventDefault();
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-		const command = input.value.trim();
+    const command = input.value.trim();
 
-		if (!command) {
-			return;
-		}
+    if (!command) {
+      return;
+    }
 
-		run(command);
+    run(command);
 
-		input.value = "";
-		input.focus();
-	});
+    input.value = "";
+    input.focus();
+  });
 };
