@@ -1,50 +1,149 @@
 import * as Tone from "tone";
-import { Duration, Sequence } from "@music-tool/core/dist/domain/Note";
+import type { Duration, Sequence } from "@music-tool/core/dist/domain/Note";
 import { noteGroups } from "@music-tool/core/dist/core/state";
-type synthNote = { s: string; d: number };
-const durationToSynthParam = new Map<Duration, synthNote>([
-  ["e", { s: "8n", d: 0.5 }],
-  ["h", { s: "2n", d: 2 }],
-  ["q", { s: "4n", d: 1 }],
-  ["w", { s: "1n", d: 4 }],
-  ["s", { s: "16n", d: 0.25 }],
-]);
-const playNote = async (sequence: Sequence): Promise<void> => {
-  await Tone.start();
 
-  console.log("audio started");
-
-  const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-  let now = Tone.now();
-  for (let i: number = 0; i < sequence.length; i++) {
-    const event = sequence[i];
-
-    if (event.type == "NoteEvent") {
-      const pitch = event.notes.toString().split(":")[0];
-      console.log("pitch: " + pitch);
-      const sn = durationToSynthParam.get(event.duration!)!;
-      console.log(now);
-
-      console.log("sn.s: " + sn.s);
-      console.log("sn.d " + sn.d);
-      synth.triggerAttackRelease(pitch, sn.s, now);
-      now += sn.d;
-    } else {
-      now += durationToSynthParam.get(event.duration!)!.d;
-    }
-  }
-  //synth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+type SynthDuration = {
+  toneDuration: string;
+  beats: number;
 };
 
-const button = document.createElement("button");
+const PLAY_BUTTON_ID = "play-button";
+const STOP_BUTTON_ID = "stop-button";
+const TEMPO = 120;
 
-button.textContent = "Play Note";
+const durationToSynthDuration = new Map<Duration, SynthDuration>([
+  ["w", { toneDuration: "1n", beats: 4 }],
+  ["h", { toneDuration: "2n", beats: 2 }],
+  ["q", { toneDuration: "4n", beats: 1 }],
+  ["e", { toneDuration: "8n", beats: 0.5 }],
+  ["s", { toneDuration: "16n", beats: 0.25 }],
+]);
 
-button.addEventListener("click", () => {
-  const score = noteGroups.get("score");
-  if (score) {
-    void playNote(score);
+let synth: Tone.PolySynth | null = null;
+let scheduledEventIds: number[] = [];
+
+const getSynth = (): Tone.PolySynth => {
+  if (!synth) {
+    synth = new Tone.PolySynth(Tone.Synth).toDestination();
   }
-});
 
-document.body.appendChild(button);
+  return synth;
+};
+
+const getSynthDuration = (duration: Duration): SynthDuration => {
+  const synthDuration = durationToSynthDuration.get(duration);
+
+  if (!synthDuration) {
+    throw new Error(`Unsupported duration: ${duration}`);
+  }
+
+  return synthDuration;
+};
+
+const getEventPitches = (event: Sequence[number]): string[] => {
+  if (event.type !== "NoteEvent") {
+    return [];
+  }
+
+  return event.notes.map((note) => note.toString().split(":")[0]);
+};
+
+const setPlaybackButtonState = (isPlaying: boolean): void => {
+  const playButton = document.getElementById(PLAY_BUTTON_ID);
+  const stopButton = document.getElementById(STOP_BUTTON_ID);
+
+  playButton?.classList.toggle("is-active", isPlaying);
+  stopButton?.classList.toggle("is-active", !isPlaying);
+};
+
+export const stopPlayback = (): void => {
+  Tone.Transport.stop();
+  Tone.Transport.position = 0;
+
+  for (const eventId of scheduledEventIds) {
+    Tone.Transport.clear(eventId);
+  }
+
+  scheduledEventIds = [];
+
+  if (synth) {
+    synth.releaseAll();
+  }
+
+  setPlaybackButtonState(false);
+};
+
+export const playSequence = async (
+  sequence: Sequence,
+  tempo = TEMPO,
+): Promise<void> => {
+  await Tone.start();
+
+  stopPlayback();
+
+  const currentSynth = getSynth();
+  const secondsPerBeat = 60 / tempo;
+
+  let startBeat = 0;
+
+  for (const event of sequence) {
+    const { beats } = getSynthDuration(event.duration);
+    const pitches = getEventPitches(event);
+
+    if (pitches.length > 0) {
+      const startSeconds = startBeat * secondsPerBeat;
+      const eventDurationSeconds = beats * secondsPerBeat;
+
+      const eventId = Tone.Transport.schedule((time) => {
+        currentSynth.triggerAttackRelease(pitches, eventDurationSeconds, time);
+      }, startSeconds);
+
+      scheduledEventIds.push(eventId);
+    }
+
+    startBeat += beats;
+  }
+
+  const totalDurationSeconds = startBeat * secondsPerBeat;
+
+  const finishedEventId = Tone.Transport.schedule(() => {
+    Tone.Transport.stop();
+    Tone.Transport.position = 0;
+    scheduledEventIds = [];
+
+    if (synth) {
+      synth.releaseAll();
+    }
+
+    setPlaybackButtonState(false);
+  }, totalDurationSeconds);
+
+  scheduledEventIds.push(finishedEventId);
+
+  setPlaybackButtonState(true);
+  Tone.Transport.start();
+};
+
+const wirePlaybackButtons = (): void => {
+  const playButton = document.getElementById(PLAY_BUTTON_ID);
+  const stopButton = document.getElementById(STOP_BUTTON_ID);
+
+  if (!playButton || !stopButton) {
+    throw new Error("Missing playback buttons.");
+  }
+
+  playButton.addEventListener("click", () => {
+    const score = noteGroups.get("score");
+
+    if (!score) {
+      console.warn("No score group found.");
+      return;
+    }
+
+    void playSequence(score);
+  });
+
+  stopButton.addEventListener("click", stopPlayback);
+};
+
+wirePlaybackButtons();
