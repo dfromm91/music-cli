@@ -23,8 +23,13 @@ export const domAdapter: AppPort = {
 export const createRunner = (port: AppPort, subs?: Subscriptions) => {
   const parseInput = buildParseInput(port, subs);
   return (input: string) => {
-    const possibleMacro = macros.get(input);
-    input = possibleMacro ? possibleMacro() : input;
+    for (let i = 0; i < macros.length; i++) {
+      const result = macros[i](input);
+      if (result.apply) {
+        input = result.sub;
+      }
+    }
+
     const lines = input.split(";");
     for (let i = 0; i < lines.length; i++) {
       const parsed = parseInput(lines[i]);

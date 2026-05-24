@@ -23,34 +23,47 @@ import { Duration } from "../domain/Note";
 //       "; set score drop 1 score; append score tmp",
 //   ],
 // ]);
-type Macro = () => string;
+type macro = (input: string) => { apply: true; sub: string } | { apply: false };
 
-export const macros = new Map<string, Macro>([
-  [
-    "u",
-    () =>
-      "set tmp reverse score | take 1 | transpose -1; set score drop 1 score; append score tmp;",
-  ],
-  [
-    "d",
-    () =>
-      "set tmp reverse score | take 1 | transpose 1; set score drop 1 score; append score tmp;",
-  ],
-  [
-    "+",
-    () =>
-      "set tmp reverse score | take 1 | setDuration " +
-      getNextDuration(1) +
-      "; set score drop 1 score; append score tmp",
-  ],
-  [
-    "-",
-    () =>
-      "set tmp reverse score | take 1 | setDuration " +
-      getNextDuration(-1) +
-      "; set score drop 1 score; append score tmp",
-  ],
-]);
+export const macros: macro[] = [
+  (input) =>
+    input == "d"
+      ? {
+          apply: true,
+          sub: "set tmp reverse score | take 1 | transpose -1; set score drop 1 score; append score tmp;",
+        }
+      : { apply: false },
+
+  (input) =>
+    input == "u"
+      ? {
+          apply: true,
+          sub: "set tmp reverse score | take 1 | transpose 1; set score drop 1 score; append score tmp;",
+        }
+      : { apply: false },
+
+  (input) =>
+    input == "+"
+      ? {
+          apply: true,
+          sub:
+            "set tmp reverse score | take 1 | setDuration " +
+            getNextDuration(1) +
+            "; set score drop 1 score; append score tmp",
+        }
+      : { apply: false },
+
+  (input) =>
+    input == "-"
+      ? {
+          apply: true,
+          sub:
+            "set tmp reverse score | take 1 | setDuration " +
+            getNextDuration(-1) +
+            "; set score drop 1 score; append score tmp",
+        }
+      : { apply: false },
+];
 function getNextDuration(step: number): Duration {
   const score = noteGroups.get("score");
 
