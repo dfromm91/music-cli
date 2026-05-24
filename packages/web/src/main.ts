@@ -10,7 +10,7 @@ import { divideSequenceIntoMeasures } from "@music-tool/core/src/core/musicMath"
 type onUpdate = (s: Sequence) => void;
 
 const STAFF_ELEMENT_ID = "staff-placeholder";
-const MEASURE_WIDTH = 180;
+const MEASURE_WIDTH = 250;
 const LEFT_MARGIN = 20;
 const TOP_MARGIN = 40;
 
@@ -201,6 +201,73 @@ const wirePrintPdfButton = (): void => {
 
   button.addEventListener("click", printPdf);
 };
+const commandHistory: string[] = [];
+let historyIndex = -1;
 
+const consoleInput = document.getElementById(
+  "console-input",
+) as HTMLInputElement;
+
+const consoleForm = document.getElementById("console-form") as HTMLFormElement;
+
+consoleForm.addEventListener("submit", () => {
+  const command = consoleInput.value.trim();
+
+  if (command.length > 0) {
+    commandHistory.push(command);
+  }
+
+  historyIndex = -1;
+});
+
+consoleInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    consoleForm.requestSubmit();
+    resizeConsoleInput();
+    return;
+  }
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+
+    if (commandHistory.length === 0) {
+      return;
+    }
+
+    historyIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+    consoleInput.value =
+      commandHistory[commandHistory.length - 1 - historyIndex];
+    consoleInput.setSelectionRange(
+      consoleInput.value.length,
+      consoleInput.value.length,
+    );
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+
+    if (historyIndex <= 0) {
+      historyIndex = -1;
+      consoleInput.value = "";
+      resizeConsoleInput();
+      return;
+    }
+
+    historyIndex--;
+    consoleInput.value =
+      commandHistory[commandHistory.length - 1 - historyIndex];
+    consoleInput.setSelectionRange(
+      consoleInput.value.length,
+      consoleInput.value.length,
+    );
+    resizeConsoleInput();
+  }
+});
 wirePrintPdfButton();
+const resizeConsoleInput = (): void => {
+  consoleInput.style.height = "0px";
+  consoleInput.style.height = `${consoleInput.scrollHeight}px`;
+};
+
+consoleInput.addEventListener("input", resizeConsoleInput);
 startDomRepl(subscriptions);

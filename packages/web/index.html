@@ -10,6 +10,8 @@
     <main class="app-shell">
       <header class="app-header">
         <h1>ScoreSketch</h1>
+        <button id="play-button" title="Play">▶</button>
+        <button id="stop-button" title="Stop">■</button>
         <button id="print-pdf-button">Export PDF</button>
         <button id="run-button">Run</button>
       </header>
@@ -24,12 +26,21 @@
         </div>
 
         <form class="console-input-row" id="console-form">
-          <span class="prompt">scoresketch&gt;</span>
-          <input id="console-input" type="text" autofocus />
+          <span class="prompt">&gt;</span>
+          <textarea
+            id="console-input"
+            autofocus
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            rows="1"
+          ></textarea>
         </form>
       </section>
     </main>
 
     <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/playSound.ts"></script>
   </body>
 </html>
