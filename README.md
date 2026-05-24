@@ -1,70 +1,61 @@
 # ScoreSketch
 
-ScoreSketch is a TypeScript music notation CLI/DSL for building and transforming short musical sequences.
+ScoreSketch is an experimental TypeScript music DSL for sketching, transforming, rendering, and eventually playing musical ideas as data.
 
-The project started as a terminal-based music transformation tool and now also includes a browser-based interface that renders note sequences to a staff using VexFlow.
+It started as a terminal REPL for manipulating note groups, and now includes a browser interface that renders the `score` group to notation using VexFlow.
+
+## What It Does
+
+ScoreSketch lets you write small commands like this:
+
+```txt
+set score motif
+append score transpose 2 motif
+append score reverse motif
+```
+
+The basic idea is:
+
+```txt
+command -> source note group -> transform pipeline -> updated note group
+```
+
+Musical ideas are represented as sequences of score events. A score event can be a note, a chord, or a rest, and each event has a duration.
+
+Examples of printed events:
+
+```txt
+C4:q
+[C4,E4,G4]:h
+r:e
+```
 
 ## Current Features
 
-- Terminal REPL for entering ScoreSketch commands
-- Browser REPL UI using the same core engine
-- Simple DSL for transforming note groups
-- Support for:
-  - notes
-  - rests
-  - chords
-  - reusable note groups
-- Transform commands including:
-  - `transpose`
-  - `octaveShift`
-  - `reverse`
-  - `repeat`
-  - `rotate`
-  - `take`
-  - `drop`
-  - `slice`
-  - `invert`
-- Basic VexFlow rendering for the `score` group
-- Adapter-based architecture for running the same core logic in multiple environments
-
-## Project Structure
-
-```txt
-music-cli/
-  packages/
-    core/   # Parser, transforms, state, command runner, CLI REPL
-    web/    # Browser UI, DOM adapter, VexFlow rendering
-```
-
-## Architecture
-
-ScoreSketch separates the core music engine from the environment it runs in.
-
-The core package does not need to know whether it is running in a terminal or in the browser. Instead, runtime-specific behavior is passed in through an adapter object.
-
-Basic data flow:
-
-```txt
-user input
-  -> parser
-  -> command resolution
-  -> transformation pipeline
-  -> state mutation
-  -> subscriptions
-  -> terminal output or browser rendering
-```
-
-The browser UI subscribes to updates on the special `score` group. When `score` changes, the web package re-renders the sequence using VexFlow.
+- Terminal REPL
+- Browser REPL
+- Shared core runner for CLI and web
+- Note groups stored in memory
+- Notes, chords, rests, and durations
+- Transform pipeline syntax using `|`
+- Multi-command scripts using `;`
+- VexFlow rendering for the `score` group
+- Basic browser command history
+- Print/export through the browser print dialog
+- Experimental sound playback through the web adapter
+- Small macro system for shortcut commands
 
 ## Commands
 
 ### State Commands
 
 ```txt
-append <group> <transform...> <source>
 set <group> <transform...> <source>
+append <group> <transform...> <source>
 clear <group>
 print <group>
+play <group>
+show <group>
 ```
 
 ### Transform Commands
@@ -79,51 +70,146 @@ take <count>
 drop <count>
 slice <start> <end?>
 invert
+setDuration <duration>
+```
+
+Supported duration symbols:
+
+```txt
+w  whole
+h  half
+q  quarter
+e  eighth
+s  sixteenth
 ```
 
 ### Navigation Commands
 
 ```txt
-groups
 help
+groups
 exit
 ```
 
+`exit` applies to the terminal REPL.
+
 ## Examples
 
-Print the default motif:
-
-```txt
-print motif
-```
-
-Set the main score to the motif:
+Set the main score to the default motif:
 
 ```txt
 set score motif
 ```
 
-Append a reversed version of the motif:
+Append the motif transposed up two semitones:
 
 ```txt
-append score reverse motif
+append score transpose 2 motif
 ```
 
-Append a transposed version of the first four events:
+Append a reversed and transposed version of the motif:
 
 ```txt
-append score transpose 2 | take 4 motif
+append score reverse | transpose 7 motif
 ```
 
-Repeat a motif:
+Take the first two events of a group:
 
 ```txt
-append score repeat 3 motif
+set score take 2 motif
 ```
 
-## Running the Project
+Change durations:
 
-Install dependencies from the project root:
+```txt
+set score setDuration e motif
+```
+
+Run multiple commands in one line:
+
+```txt
+set score motif; append score transpose 12 motif; print score
+```
+
+Use a transform by itself to print the transformed result without changing state:
+
+```txt
+transpose 7 motif
+```
+
+## Macros
+
+ScoreSketch includes a small experimental macro layer.
+
+Current examples include:
+
+```txt
+u
+d
++
+-
+up<number>
+```
+
+These are shorthand rewrites for common score-editing operations, such as moving the last event up/down or changing its duration.
+
+This system is intentionally simple for now and may change as the language becomes more structured.
+
+## Project Structure
+
+```txt
+music-cli/
+  package.json
+
+  packages/
+    core/
+      src/
+        cli.ts
+        repl.ts
+        commands/
+        core/
+        domain/
+        parser/
+        runner/
+
+    web/
+      src/
+        main.ts
+        domRepl.ts
+        playSound.ts
+```
+
+## Architecture
+
+The project is split into two main packages:
+
+### `@music-tool/core`
+
+The core package owns the language/runtime pieces:
+
+- score event types
+- note groups
+- transforms
+- command parsing
+- command execution
+- CLI REPL
+- adapter interfaces
+
+### `@music-tool/web`
+
+The web package provides browser-specific behavior:
+
+- DOM REPL
+- VexFlow rendering
+- print/export button
+- playback adapter
+- command history
+
+The core runner receives an adapter, so the same command engine can run in a terminal or in the browser.
+
+## Running Locally
+
+Install dependencies:
 
 ```bash
 npm install
@@ -135,10 +221,16 @@ Run the terminal CLI:
 npm run cli
 ```
 
-Run the browser UI:
+Run the browser app:
 
 ```bash
 npm run web
+```
+
+Run tests:
+
+```bash
+npm test
 ```
 
 Build both packages:
@@ -147,45 +239,51 @@ Build both packages:
 npm run build
 ```
 
-## Current Limitations
-
-This project is still early-stage.
-
-The current notation renderer assumes simple quarter-note-oriented measure grouping. More complete notation support will require better handling of:
-
-- rhythmic duration math
-- measure splitting
-- beaming
-- rests
-- wrapping systems across multiple lines
-- layout and spacing
-- export options
-
-## Roadmap Ideas
-
-Possible future improvements:
-
-- Better parser structure
-- Duration-aware measure splitting
-- More complete VexFlow rendering
-- MIDI export
-- Playback
-- Save/load support
-- More transformation commands
-- A richer browser editor
-- Script files instead of only REPL input
-
 ## Tech Stack
 
 - TypeScript
 - Node.js
+- npm workspaces
 - Vite
 - VexFlow
+- Tone.js
 - Vitest
-- npm workspaces
 
-## Why This Project Exists
+## Current Limitations
 
-ScoreSketch is an experiment in using a small domain-specific language to manipulate musical ideas as data.
+ScoreSketch is still early-stage and exploratory.
 
-The goal is to explore the overlap between music theory, language design, functional transformations, and notation rendering.
+Some known limitations:
+
+- State is currently in memory only.
+- The parser is useful but still evolving.
+- Rendering is currently focused on basic treble-clef notation.
+- Measure/layout behavior is still limited.
+- Playback is experimental.
+- The language does not yet have a full AST.
+- There is no save/load format yet.
+- Error handling is improving but not final.
+- The web package currently reaches into some core source/dist paths directly, which should be cleaned up later.
+
+## Roadmap Ideas
+
+Possible next steps:
+
+- Better parser/AST structure
+- Script files
+- Save/load support
+- MIDI export
+- More complete playback
+- Better rhythm and measure handling
+- Better VexFlow layout
+- More score-editing macros
+- A richer browser editor
+- Export to PDF, MusicXML, or MIDI
+- User-defined motifs/macros
+- Loops or conditionals for longer-form composition scripts
+
+## Why This Exists
+
+ScoreSketch is a personal exploration of the overlap between music theory, programming languages, functional transformations, notation rendering, and composition tools.
+
+The goal is not just to build a notation app. The goal is to make musical ideas feel programmable.
