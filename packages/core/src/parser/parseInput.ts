@@ -3,13 +3,14 @@ import { buildStateCommands } from "../commands/stateCommands";
 import { transformCommands } from "../commands/transformCommands";
 import { resolveSequence } from "../core/helpers";
 import { fail, ok, Result } from "../core/Result";
-import { noteGroups } from "../core/state";
+import { macros } from "../commands/macros";
 import { AppPort, Pipeline, Subscriptions, Transform } from "../core/types";
 
 export const buildParseInput = (ap: AppPort, subs?: Subscriptions) => {
   const stateCommands = buildStateCommands(ap, subs);
   const navCommands = buildNavCommands(ap);
   return (input: string): Result<Pipeline> => {
+    console.log(input);
     let parts = input
       .split("|")
       .map((x) => x.trim())
