@@ -63,6 +63,18 @@ export const macros: macro[] = [
             "; set score drop 1 score; append score tmp",
         }
       : { apply: false },
+  (input) => {
+    const match = input.match(/^up(-?\d+)$/);
+
+    if (!match) {
+      return { apply: false };
+    }
+
+    return {
+      apply: true,
+      sub: `set score transpose ${match[1]} score`,
+    };
+  },
 ];
 function getNextDuration(step: number): Duration {
   const score = noteGroups.get("score");
