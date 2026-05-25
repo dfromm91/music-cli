@@ -15,7 +15,7 @@ import { generatorCommands } from "../commands/GeneratorCommands";
 import { durationToNumber } from "./musicMath";
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
 
-const pitchMap: Record<string, Pitch> = {
+export const pitchMap: Record<string, Pitch> = {
   C: Pitch.C,
   D: Pitch.D,
   E: Pitch.E,
@@ -25,7 +25,7 @@ const pitchMap: Record<string, Pitch> = {
   B: Pitch.B,
 };
 
-const accidentalMap: Record<string, Accidental> = {
+export const accidentalMap: Record<string, Accidental> = {
   "": Accidental.Natural,
   b: Accidental.Flat,
   "#": Accidental.Sharp,

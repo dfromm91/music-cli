@@ -1,7 +1,19 @@
 import { Sequence } from "tone";
-import { Duration, Note, NoteEvent, ScoreEvent } from "../domain/Note";
+import {
+  Duration,
+  Note,
+  NoteEvent,
+  pitchClass,
+  ScoreEvent,
+} from "../domain/Note";
 import { mod } from "./helpers";
-import { fromSemitone, toSemitone } from "./musicMath";
+import {
+  computeScale,
+  findPitchClass,
+  fromSemitone,
+  scaleType,
+  toSemitone,
+} from "./musicMath";
 import { Transform } from "./types";
 
 const isNoteEvent = (event: ScoreEvent): event is NoteEvent => {
@@ -94,6 +106,42 @@ export const invert = (): Transform => (sequence) => {
   return sequence.map((event) =>
     mapNotes(event, (note) => fromSemitone(pivot - (toSemitone(note) - pivot))),
   );
+};
+
+export const harmonize = (
+  shift: number,
+  root: pitchClass,
+  scaleType: scaleType,
+): Transform => {
+  const scale = computeScale(root, scaleType);
+  return (sequence) => {
+    return sequence.map((event) => {
+      if (event.type == "RestEvent") {
+        return event;
+      }
+      const shiftedNotes = mapNotes(event, (note) => {
+        const noteIndex = findPitchClass(
+          { pitch: note.pitch, accidental: note.accidental },
+          scale,
+        );
+        const shiftedPitchClass = scale[(noteIndex + shift) % scale.length];
+        const shiftedNote = new Note(
+          shiftedPitchClass.pitch,
+          shiftedPitchClass.accidental,
+          note.octave,
+        );
+        return shiftedNote;
+      });
+      if (shiftedNotes.type == "NoteEvent") {
+        return {
+          type: "NoteEvent",
+          notes: [...event.notes, ...shiftedNotes.notes],
+          duration: event.duration,
+        };
+      }
+      return event;
+    });
+  };
 };
 
 export const compose = (transforms: Transform[]): Transform =>
