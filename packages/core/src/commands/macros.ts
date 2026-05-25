@@ -99,6 +99,15 @@ export const macros: macro[] = [
       sub: "set score replace " + input.replace("*", "") + " score",
     };
   },
+  (input) => {
+    if (input != "<") {
+      return { apply: false };
+    }
+    return {
+      apply: true,
+      sub: "set score reverse score | drop 1 | reverse",
+    };
+  },
 ];
 function getNextDuration(step: number): Duration {
   const score = noteGroups.get("score");
