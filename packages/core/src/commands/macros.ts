@@ -30,7 +30,7 @@ export const macros: macro[] = [
     input == "d"
       ? {
           apply: true,
-          sub: "set tmp reverse score | take 1 | transpose -1; set score drop 1 score; append score tmp;",
+          sub: "set tmp reverse score | take 1 | transpose -1; set score reverse score | drop 1 | reverse; append score tmp",
         }
       : { apply: false },
 
@@ -38,7 +38,7 @@ export const macros: macro[] = [
     input == "u"
       ? {
           apply: true,
-          sub: "set tmp reverse score | take 1 | transpose 1; set score drop 1 score; append score tmp;",
+          sub: "set tmp reverse score | take 1 | transpose 1; set score reverse score | drop 1 | reverse; append score tmp",
         }
       : { apply: false },
 
@@ -49,7 +49,7 @@ export const macros: macro[] = [
           sub:
             "set tmp reverse score | take 1 | setDuration " +
             getNextDuration(1) +
-            "; set score drop 1 score; append score tmp",
+            "; set score reverse score | drop 1 | reverse; append score tmp",
         }
       : { apply: false },
 
@@ -60,7 +60,7 @@ export const macros: macro[] = [
           sub:
             "set tmp reverse score | take 1 | setDuration " +
             getNextDuration(-1) +
-            "; set score drop 1 score; append score tmp",
+            "; set score reverse score | drop 1 | reverse; append score tmp",
         }
       : { apply: false },
   (input) => {
@@ -73,6 +73,19 @@ export const macros: macro[] = [
     return {
       apply: true,
       sub: `set score transpose ${match[1]} score`,
+    };
+  },
+  (input) => {
+    const isNumber = /^-?\d+$/.test(input);
+    if (!isNumber) {
+      return { apply: false };
+    }
+    return {
+      apply: true,
+      sub:
+        "set tmp reverse score | take 1 | transpose " +
+        input +
+        "; append score tmp",
     };
   },
 ];
