@@ -6,6 +6,9 @@ import {
   isDuration,
   pitchMap,
   accidentalMap,
+  parseExcerpt,
+  getNoteIndex,
+  resolveSequence,
 } from "../core/helpers";
 import {
   chromaticPitchClasses,
@@ -24,6 +27,7 @@ import {
   transpose,
   setDuration,
   harmonize,
+  replace,
 } from "../core/transforms";
 import { Transform } from "../core/types";
 import { Accidental, Pitch } from "../domain/Note";
@@ -95,6 +99,36 @@ export const transformCommands = new Map<string, TransformCommand>([
         return ok(setDuration(possibleDuration));
       }
       return fail("could not resolve duration symbol: " + possibleDuration);
+    },
+  ],
+  [
+    "replace",
+    (args) => {
+      const [selection, replacement] = args;
+      const replacementSequence = resolveSequence(replacement);
+      if (!replacementSequence.ok) {
+        return fail("invalid selection for replacement");
+      }
+      const [replaceStart, replaceEnd] = selection.replace("@", "").split("-");
+      const [replaceStartBar, replaceStartBeat] = replaceStart.split("/");
+      const [replaceEndBar, replaceEndBeat] = replaceEnd.split("/");
+      return ok((sequence) => {
+        const replaceStartIndex = getNoteIndex(
+          sequence,
+          parseInt(replaceStartBar),
+          parseInt(replaceStartBeat),
+        );
+        const replaceEndIndex = getNoteIndex(
+          sequence,
+          parseInt(replaceEndBar),
+          parseInt(replaceEndBeat),
+        );
+        return replace(
+          replaceStartIndex,
+          replaceEndIndex,
+          replacementSequence.value,
+        )(sequence);
+      });
     },
   ],
   [

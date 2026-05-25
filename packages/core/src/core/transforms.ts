@@ -144,6 +144,18 @@ export const harmonize = (
   };
 };
 
+export const replace =
+  (
+    replaceStart: number,
+    replaceEnd: number,
+    replacement: ScoreEvent[],
+  ): Transform =>
+  (sequence) => [
+    ...sequence.slice(0, replaceStart),
+    ...replacement,
+    ...sequence.slice(replaceEnd, sequence.length),
+  ];
+
 export const compose = (transforms: Transform[]): Transform =>
   transforms.reduce(
     (acc, transform) => (sequence) => transform(acc(sequence)),

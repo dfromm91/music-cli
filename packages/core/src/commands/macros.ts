@@ -88,6 +88,17 @@ export const macros: macro[] = [
         "; append score tmp",
     };
   },
+  (input) => {
+    const regex = /^\*@(\d+)\/(\d+(?:\.\d+)?)-(\d+)\/(\d+(?:\.\d+)?)$/;
+    const isReplace = regex.test(input.split(" ")[0]);
+    if (!isReplace) {
+      return { apply: false };
+    }
+    return {
+      apply: true,
+      sub: "set score replace " + input.replace("*", "") + " score",
+    };
+  },
 ];
 function getNextDuration(step: number): Duration {
   const score = noteGroups.get("score");

@@ -64,14 +64,17 @@ const parseNoteLiteral = (input: string): Result<Note> => {
 export const isDuration = (input: string): input is Duration => {
   return ["w", "h", "q", "e", "s"].includes(input);
 };
-const parseExcerpt = (input: string): Result<Sequence> => {
+export const parseExcerpt = (
+  input: string,
+  group = "score",
+): Result<Sequence> => {
   const [start, end] = input.replace("@", "").split("-");
   const regEx = /^\d{1,3}\/\d+(?:\.\d+)?$/;
   const result = regEx.test(start) && regEx.test(end);
   if (!result || !start || !end) {
     return fail("invalid score selection");
   }
-  const score = noteGroups.get("score")!;
+  const score = group ? noteGroups.get(group)! : noteGroups.get("score")!;
   const [startBar, startBeat] = start.split("/");
   const startBarNumber = parseInt(startBar)!;
   const startBeatNumber = parseFloat(startBeat)!;
@@ -89,7 +92,7 @@ const parseExcerpt = (input: string): Result<Sequence> => {
   return ok([...score.slice(startIndex, endIndex)]);
 };
 
-const getNoteIndex = (
+export const getNoteIndex = (
   sequence: Sequence,
   bar: number,
   beat: number,
