@@ -1,9 +1,17 @@
+import { Sequence } from "tone";
 import { fail, ok, Result } from "../core/Result";
 import {
   parseOptionalInt,
   parseRequiredInt,
   isDuration,
+  pitchMap,
+  accidentalMap,
 } from "../core/helpers";
+import {
+  chromaticPitchClasses,
+  findPitchClass,
+  isScaleType,
+} from "../core/musicMath";
 import {
   drop,
   invert,
@@ -15,8 +23,10 @@ import {
   take,
   transpose,
   setDuration,
+  harmonize,
 } from "../core/transforms";
 import { Transform } from "../core/types";
+import { Accidental, Pitch } from "../domain/Note";
 
 export type TransformCommand = (args: string[]) => Result<Transform>;
 
@@ -85,6 +95,21 @@ export const transformCommands = new Map<string, TransformCommand>([
         return ok(setDuration(possibleDuration));
       }
       return fail("could not resolve duration symbol: " + possibleDuration);
+    },
+  ],
+  [
+    "harmonize",
+    (args) => {
+      const [shift, root, scaleType] = args;
+      const s = parseInt(shift);
+      const [rootPitch, rootAccidental] = root.split("");
+      const pitch = pitchMap[rootPitch];
+      const accidental = accidentalMap[rootAccidental] || Accidental.Natural;
+      const pitchClass = { pitch: pitch, accidental: accidental };
+      if (isScaleType(scaleType)) {
+        return ok(harmonize(s, pitchClass, scaleType));
+      }
+      return fail("could not harmonize");
     },
   ],
 ]);
