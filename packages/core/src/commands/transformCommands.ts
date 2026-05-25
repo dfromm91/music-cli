@@ -28,6 +28,7 @@ import {
   setDuration,
   harmonize,
   replace,
+  transposeDiatonic,
 } from "../core/transforms";
 import { Transform } from "../core/types";
 import { Accidental, Pitch } from "../domain/Note";
@@ -144,6 +145,21 @@ export const transformCommands = new Map<string, TransformCommand>([
         return ok(harmonize(s, pitchClass, scaleType));
       }
       return fail("could not harmonize");
+    },
+  ],
+  [
+    "dtranspose",
+    (args) => {
+      const [shift, root, scaleType] = args;
+      const s = parseInt(shift);
+      const [rootPitch, rootAccidental] = root.split("");
+      const pitch = pitchMap[rootPitch];
+      const accidental = accidentalMap[rootAccidental] || Accidental.Natural;
+      const pitchClass = { pitch: pitch, accidental: accidental };
+      if (isScaleType(scaleType)) {
+        return ok(transposeDiatonic(s, pitchClass, scaleType));
+      }
+      return fail("could not diatonically transpose");
     },
   ],
 ]);

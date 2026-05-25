@@ -108,6 +108,45 @@ export const invert = (): Transform => (sequence) => {
   );
 };
 
+export const transposeDiatonic = (
+  shift: number,
+  root: pitchClass,
+  scaleType: scaleType,
+): Transform => {
+  const scale = computeScale(root, scaleType);
+  return (sequence) => {
+    return sequence.map((event) => {
+      if (event.type == "RestEvent") {
+        return event;
+      }
+      const shiftedNotes = mapNotes(event, (note) => {
+        const noteIndex = findPitchClass(
+          { pitch: note.pitch, accidental: note.accidental },
+          scale,
+        );
+        let newIndex = (noteIndex + shift) % scale.length;
+        if (newIndex < 0) newIndex = scale.length - Math.abs(newIndex);
+
+        const shiftedPitchClass = scale[newIndex];
+        const shiftedNote = new Note(
+          shiftedPitchClass.pitch,
+          shiftedPitchClass.accidental,
+          note.octave,
+        );
+        return shiftedNote;
+      });
+      if (shiftedNotes.type == "NoteEvent") {
+        return {
+          type: "NoteEvent",
+          notes: [...shiftedNotes.notes],
+          duration: event.duration,
+        };
+      }
+      return event;
+    });
+  };
+};
+
 export const harmonize = (
   shift: number,
   root: pitchClass,
