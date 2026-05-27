@@ -8,6 +8,7 @@ import {
 } from "../domain/Note";
 import { mod } from "./helpers";
 import {
+  chromaticPitchClasses,
   computeScale,
   findPitchClass,
   fromSemitone,
@@ -128,10 +129,29 @@ export const transposeDiatonic = (
         if (newIndex < 0) newIndex = scale.length - Math.abs(newIndex);
 
         const shiftedPitchClass = scale[newIndex];
+        const noteIndexChromatic = findPitchClass(
+          { pitch: note.pitch, accidental: note.accidental },
+          chromaticPitchClasses,
+        );
+        const shiftedNoteIndexChromatic = findPitchClass(
+          shiftedPitchClass,
+          chromaticPitchClasses,
+        );
+        const octaveShift =
+          shift > 0
+            ? Math.floor(shift / scale.length)
+            : Math.ceil(shift / scale.length);
+        const crossesCAbove =
+          shift > 0 && noteIndexChromatic > shiftedNoteIndexChromatic;
+        const crossesCBelow =
+          shift < 0 && noteIndexChromatic < shiftedNoteIndexChromatic;
+
         const shiftedNote = new Note(
           shiftedPitchClass.pitch,
           shiftedPitchClass.accidental,
-          note.octave,
+          note.octave +
+            octaveShift +
+            (crossesCAbove ? 1 : crossesCBelow ? -1 : 0),
         );
         return shiftedNote;
       });
